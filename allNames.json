@@ -1,5 +1,0 @@
-{"old_MatLab": {"8": ["ECG", "BPAo", "signal3", "signal4", "BPplus", "BPleg", "BParm", "Doppler"]},
-"new_MatLab": {"5": ["signal1", "BPleg", "ECG", "BParm", "signal5"]},
-"JSON_ecg": {"1": ["ECG"]},
-"JSON_acc": {"3": ["Acc_x", "Acc_y", "Acc_z"]},
-"TXT": {"5": ["ECG_1", "ECG_2", "ECG_inv", "BPAo", "BPAo'"], "7": ["ECG_1", "ECG_2", "ECG_inv", "BPAo", "BPAo'", "BPAom", "BPAom'"]}}
