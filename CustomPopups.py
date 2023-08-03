@@ -620,8 +620,6 @@ class DisplMeanWindow(QMainWindow):
         self.allecgML, self.allbpLeg, self.allbpArm, self.allecgJSON, self.allVectlin, self.allVectrot = mean_ecgML, mean_bpLeg, mean_bpArm, mean_ecgJSON, allVectlin, allVectrot
         self.ecgML, self.bpLeg, self.bpArm, self.ecgJSON, self.linSCG, self.rotSCG = ecgML, bpLeg, self.bpArm, ecgJSON, linSCG, rotSCG
         
-        
-        
         def returnCleaned(liste2D, indexes):
             new0 = []
             new1 = []
@@ -630,6 +628,7 @@ class DisplMeanWindow(QMainWindow):
             new = [new0, new1]
             
             return new
+        
         
         
         ecgp_pML = returnCleaned(p_pML, idx_ecgML)
@@ -651,14 +650,10 @@ class DisplMeanWindow(QMainWindow):
         pqrstJSONcl = [ecgp_pJSON, ecgq_pJSON, ecgr_pJSON, ecgs_pJSON, ecgt_pJSON, ecgp_onJSON, ecgt_offJSON]
         
         
-        
-        
-        
-        
         # Add the ECGs centered on the R peaks instead
-        self.addECG_centerR(ecgML, pqrstMATcl)
+        self.addECG_centerR(ecgML, pqrstMATcl, realR=r_pML)
         self.printHRV(ecgML, pqrstMAT)
-        self.addECG_centerR(ecgJSON, pqrstJSONcl)
+        self.addECG_centerR(ecgJSON, pqrstJSONcl, realR=r_pJSON)
         self.printHRV(ecgJSON, pqrstJSON)
         
         onsets = onsBPLeg
@@ -690,23 +685,12 @@ class DisplMeanWindow(QMainWindow):
         self.addBP(self.bpLeg, mean_bpLeg, onsBPLegCl)
         self.addBP(self.bpArm, mean_bpArm, onsBPArmCl)
         
+
         
-        r_relML = np.zeros(len(ecgr_pML[0])).astype(int)
-        s_relML = np.array(ecgs_pML[0]) - np.array(ecgr_pML[0])
-        t_relML = np.array(ecgt_pML[0]) - np.array(ecgr_pML[0])
-        tOff_relML = np.array(ecgt_offML[0]) - np.array(ecgr_pML[0])
-        pOn_relML = np.delete(ecgp_onML[0], 0)-np.delete(ecgr_pML[0], -1)
-        p_relML = np.delete(ecgp_pML[0], 0)-np.delete(ecgr_pML[0], -1)
-        q_relML = np.delete(ecgq_pML[0], 0)-np.delete(ecgr_pML[0], -1)
+
+
         
         
-        r_relJSON = np.zeros(len(ecgr_pJSON[0])).astype(int)
-        s_relJSON = np.array(ecgs_pJSON[0]) - np.array(ecgr_pJSON[0])
-        t_relJSON = np.array(ecgt_pJSON[0]) - np.array(ecgr_pJSON[0])
-        tOff_relJSON = np.array(ecgt_offJSON[0]) - np.array(ecgr_pJSON[0])
-        pOn_relJSON = np.delete(ecgp_onJSON[0], 0)-np.delete(ecgr_pJSON[0], -1)
-        p_relJSON = np.delete(ecgp_pJSON[0], 0)-np.delete(ecgr_pJSON[0], -1)
-        q_relJSON = np.delete(ecgq_pJSON[0], 0)-np.delete(ecgr_pJSON[0], -1)
         
         #%%
         listToDisplay = [allVectlin, allVectrot]
@@ -840,93 +824,8 @@ class DisplMeanWindow(QMainWindow):
         
     #%% Display of the MetaData and the approximative PWV
         
-        # Computation of the HR
-        self.hrJSON = np.round(60/np.mean(np.diff(r_pJSON[1])))
-        self.hrML = np.round(60/np.mean(np.diff(r_pML[1])))
-
-        self.stdhrJSON = np.std(60/np.mean(np.diff(r_pJSON[1])))
-        self.lenHRjson = len(np.diff(r_pJSON[1]))
-        self.stdhrML = np.std(60/np.mean(np.diff(r_pML[1])))
-        self.lenHRml = len(np.diff(r_pML[1]))
-        
-        # Computation of the QTs      
-        meanRQ = np.mean(q_relJSON)
-        meanRT = np.mean(t_relJSON)
-        meanQT = meanRQ - meanRT
-        self.qtJSON = np.round(np.mean(meanQT),3)
-        
-        if len(q_pJSON[1]) == len(t_pJSON[1]):
-            qtJSON_intervals = np.array([])
-            for i in range(len(t_pJSON[1])):
-                if q_pJSON[1][i]<=t_pJSON[1][i]:
-                    qtJSON_intervals = np.append(qtJSON_intervals, t_pJSON[1][i] - q_pJSON[1][i])
-                else :
-                    if not i == 0:
-                        qtJSON_intervals = np.append(qtJSON_intervals, t_pJSON[1][i] - q_pJSON[1][i-1])
-            #self.qtJSON = np.round(np.mean(qtJSON_intervals),3)
-        
-        meanRQ = np.mean(q_relML)
-        meanRT = np.mean(t_relML)
-        meanQT = meanRQ - meanRT
-        self.qtML = np.round(np.mean(meanQT),3)
-        
-        if len(q_pML[1]) == len(t_pML[1]):
-            qtML_intervals = np.array([])
-            for i in range(len(t_pML[1])):
-                if q_pML[1][i]<=t_pML[1][i]:
-                    qtML_intervals = np.append(qtML_intervals, t_pML[1][i] - q_pML[1][i])
-                else :
-                    if not i == 0:
-                        qtML_intervals = np.append(qtML_intervals, t_pML[1][i] - q_pML[1][i-1])
-            #self.qtML = np.round(np.mean(qtML_intervals),3)
-         
-            
-        self.stdQTjson = np.std(qtJSON_intervals)
-        self.lenQTjson = len(qtJSON_intervals)
-        self.stdQTml = np.std(qtML_intervals)
-        self.lenQTml = len(qtML_intervals)
-        
-        self.stdQTjson = np.std(qtJSON_intervals)
-        self.lenQTjson = len(qtJSON_intervals)
-        self.stdQTml = np.std(qtML_intervals)
-        self.lenQTml = len(qtML_intervals)
         
         
-        
-        # Computation of the PRs
-        
-        meanRP = abs(np.mean(p_relJSON))
-        self.prJSON = np.round(np.mean(meanRP),3)
-        meanRP = abs(np.mean(p_relML))
-        self.prML = np.round(np.mean(meanRP),3)
-        
-        
-        if len(p_pJSON[1]) == len(r_pJSON[1]):
-            
-            prJSON_intervals = np.array([])
-            for i in range(len(r_pJSON[1])):
-                if p_pJSON[1][i]<=r_pJSON[1][i]:
-                    prJSON_intervals = np.append(prJSON_intervals, r_pJSON[1][i] - p_pJSON[1][i])
-                else :
-                    if not i == 0:
-                        prJSON_intervals = np.append(prJSON_intervals, r_pJSON[1][i] - p_pJSON[1][i-1])
-            #self.prJSON = np.round(np.mean(prJSON_intervals),3)
-       
-        if len(p_pML[1]) == len(r_pML[1]):
-            
-            prML_intervals = np.array([])
-            for i in range(len(r_pML[1])):
-                if p_pML[1][i]<=r_pML[1][i]:
-                    prML_intervals = np.append(prML_intervals, r_pML[1][i] - p_pML[1][i])
-                else :
-                    if not i == 0:
-                        prML_intervals = np.append(prML_intervals, r_pML[1][i] - p_pML[1][i-1])
-            #self.prML = np.round(np.mean(prML_intervals),3)
-        
-        self.stdPRjson = np.std(prJSON_intervals)
-        self.lenPRjson = len(prJSON_intervals)
-        self.stdPRml = np.std(prML_intervals)
-        self.lenPRml = len(prML_intervals)
         
         # Computation of the mean R-Leg and R-Arm
         self.meanR_Leg = np.mean(onsBPLeg_rel)*self.bpLeg._step
@@ -951,15 +850,15 @@ class DisplMeanWindow(QMainWindow):
         
         
         #%% Prepare the displays
-        txt_HR = QLabel("Mean HR (JSON/ML) = "+ str(self.hrJSON) +" +- "+str(np.round(self.stdhrJSON,3)) +' (N = '+str(self.lenHRjson)+') / '+ str(self.hrML)+" +- "+str(np.round(self.stdhrML,3)) +" (N = "+str(self.lenHRml)+") bpm")
-        txt_QT = QLabel("Mean Q-T intervals (JSON/ML) = "+str(self.qtJSON)+" +- "+str(np.round(self.stdQTjson,3)) +' (N = '+str(self.lenQTjson)+') / '+str(self.qtML)+" +- "+str(np.round(self.stdQTml,3)) +" (N = "+str(self.lenQTml)+") s")
-        txt_PR = QLabel("Mean P-R intervals (JSON/ML) = "+str(self.prJSON)+" +- "+str(np.round(self.stdPRjson,3)) +' (N = '+str(self.lenPRjson)+') / '+str(self.prML)+" +- "+str(np.round(self.stdPRml,3)) +" (N = "+str(self.lenPRml)+") s")
+        #txt_HR = QLabel("Mean HR (JSON/ML) = "+ str(self.hrJSON) +" +- "+str(np.round(self.stdhrJSON,3)) +' (N = '+str(self.lenHRjson)+') / '+ str(self.hrML)+" +- "+str(np.round(self.stdhrML,3)) +" (N = "+str(self.lenHRml)+") bpm")
+        #txt_QT = QLabel("Mean Q-T intervals (JSON/ML) = "+str(self.qtJSON)+" +- "+str(np.round(self.stdQTjson,3)) +' (N = '+str(self.lenQTjson)+') / '+str(self.qtML)+" +- "+str(np.round(self.stdQTml,3)) +" (N = "+str(self.lenQTml)+") s")
+        #txt_PR = QLabel("Mean P-R intervals (JSON/ML) = "+str(self.prJSON)+" +- "+str(np.round(self.stdPRjson,3)) +' (N = '+str(self.lenPRjson)+') / '+str(self.prML)+" +- "+str(np.round(self.stdPRml,3)) +" (N = "+str(self.lenPRml)+") s")
         txt_leg_arm = QLabel("Mean R-bpLeg onset delay : "+str(np.round(self.meanR_Leg,3))+" +- "+str(np.round(self.stdR_Leg,3))+" s (N = "+str(self.lenR_Leg)+") ; Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" +- "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
         pwvtxt_AO_4090 = QLabel("Delay R-AO (40-90 ms technique): "+str(np.round(self.meanR_AO_4090,3))+" +- "+str(np.round(self.stdR_AO_4090,3))+" s => afPWV = "+ str(np.round(self.pwv_4090 ,3))+" m/s")
         pwvtxt_AO_2dP = QLabel("Delay R-AO (2d peak techniaue): "+str(np.round(self.meanR_AO_2dP,3))+" +- "+str(np.round(self.stdR_AO_2dP,3))+" s => afPWV = "+str(np.round(self.pwv_2dP ,3))+" m/s")
         self.manualAO_label = QLabel(f"Manual AO : {self.aoCursor.pos().x()} s => afPWV = {self.meanR_Leg - self.aoCursor.pos().x()} m/s")
         # Display the results
-        for txt in [txt_HR, txt_QT, txt_PR, txt_leg_arm, pwvtxt_AO_4090, pwvtxt_AO_2dP, self.manualAO_label]:#pwvtxt_AO, pwvtxt_leg_arm, pwvtxt]:
+        for txt in [txt_leg_arm, pwvtxt_AO_4090, pwvtxt_AO_2dP, self.manualAO_label]:#pwvtxt_AO, pwvtxt_leg_arm, pwvtxt]:
             self.layout.addWidget(txt)
 
         
@@ -1032,7 +931,7 @@ class DisplMeanWindow(QMainWindow):
         
         
     
-    def addECG_centerR(self, ecg, pqrst):
+    def addECG_centerR(self, ecg, pqrst, realR):
         
         [p_p, q_p, r_p, s_p, t_p, p_on, t_off] = pqrst
 
@@ -1057,12 +956,91 @@ class DisplMeanWindow(QMainWindow):
                 y_ecg = ecg._y[r_p[0][i]-halfRRindexes:r_p[0][i]+trois4RRindexes]
                 meanECG.append(y_ecg)
                 nextR.append(r_p[0][i] + halfRRindexes - r_p[0][i])
-                nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i])  
-                nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i])  
-                nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i])  
-                nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i])
-                nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i])
-                nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i])  
+                
+                
+                
+                
+                if p_on[0][i] - r_p[0][i] < 0 and p_on[0][i] - r_p[0][i] > -100:
+                    nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i])
+                elif p_on[0][i] - r_p[0][i-1] < 0 and p_on[0][i] - r_p[0][i-1] > -100:
+                    nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i-1])
+                elif p_on[0][i] - r_p[0][i+1] < 0 and p_on[0][i] - r_p[0][i+1] > -100:
+                    nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i+1])
+                
+                if p_p[0][i] - r_p[0][i] < 0 and p_p[0][i] - r_p[0][i] > -100:
+                    nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i])
+                elif p_p[0][i] - r_p[0][i-1] < 0 and p_p[0][i] - r_p[0][i-1] > -100:
+                    nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i-1])
+                elif p_p[0][i] - r_p[0][i+1] < 0 and p_p[0][i] - r_p[0][i+1] > -100:
+                    nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i+1])
+                
+                if q_p[0][i] - r_p[0][i] < 0 and q_p[0][i] - r_p[0][i] > -100:
+                    nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i])
+                elif q_p[0][i] - r_p[0][i-1] < 0 and q_p[0][i] - r_p[0][i-1] > -100:
+                    nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i-1])
+                elif q_p[0][i] - r_p[0][i+1] < 0 and q_p[0][i] - r_p[0][i+1] > -100:
+                    nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i+1])
+                
+                
+                if s_p[0][i] - r_p[0][i] > 0 and s_p[0][i] - r_p[0][i] < 100:
+                    nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i])
+                elif s_p[0][i] - r_p[0][i-1] > 0 and s_p[0][i] - r_p[0][i-1] < 100:
+                    nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i-1])
+                elif s_p[0][i] - r_p[0][i+1] > 0 and s_p[0][i] - r_p[0][i+1] < 100:
+                    nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i+1])
+                    
+                if t_p[0][i] - r_p[0][i] > 0 and t_p[0][i] - r_p[0][i] < 100:
+                    nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i])
+                elif t_p[0][i] - r_p[0][i-1] > 0 and t_p[0][i] - r_p[0][i-1] < 100:
+                    nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i-1])
+                elif t_p[0][i] - r_p[0][i+1] > 0 and t_p[0][i] - r_p[0][i+1] < 100:
+                    nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i+1])
+                
+                
+                if t_off[0][i] - r_p[0][i] > 0 and t_off[0][i] - r_p[0][i] < 100:
+                    nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i])
+                elif t_off[0][i] - r_p[0][i-1] > 0 and t_off[0][i] - r_p[0][i-1] < 100:
+                    nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i-1])
+                elif t_off[0][i] - r_p[0][i+1] > 0 and t_off[0][i] - r_p[0][i+1] < 100:
+                    nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i+1])
+
+        nextPon = np.array(nextPon)
+        nextP = np.array(nextP)
+        nextQ = np.array(nextQ)
+        nextR = np.array(nextR)
+        nextS = np.array(nextS)
+        nextT = np.array(nextT)
+        nextToff = np.array(nextToff)
+        
+        # Computation of the HR
+        
+        print(60/np.diff(realR[1]))
+        hr = np.round(np.mean(60/np.diff(realR[1])), 3)
+        stdHR = np.std(60/np.diff(realR[1]))
+        lenHR = len(np.diff(realR[1]))
+        
+        minlen = min(len(nextT), len(nextQ))
+        nextTtr = nextT[:minlen]
+        nextQtr = nextQ[:minlen]
+        qt = np.round(np.mean((nextTtr-nextQtr)*ecg._step), 3)
+        stdQT = np.std((nextTtr-nextQtr)*ecg._step)
+        lenQT = len((nextTtr-nextQtr)*ecg._step)
+        
+        minlen = min(len(nextP), len(nextR))
+        nextPtr = nextP[:minlen]
+        nextRtr = nextR[:minlen]
+        pr = np.round(np.mean((nextRtr-nextPtr)*ecg._step),3)
+        stdPR = np.std((nextRtr-nextPtr)*ecg._step)
+        lenPR = len((nextRtr-nextPtr)*ecg._step)
+        
+        minlen = min(len(nextQ), len(nextS))
+        nextQtr = nextQ[:minlen]
+        nextStr = nextS[:minlen]
+        qrs = np.round(np.mean((nextStr-nextQtr)*ecg._step),3)
+        stdQRS = np.std((nextStr-nextQtr)*ecg._step)
+        lenQRS = len((nextStr-nextQtr)*ecg._step)
+        
+
 
         
         try: 
@@ -1073,6 +1051,8 @@ class DisplMeanWindow(QMainWindow):
         except: meanECG = self.all_SameLen(meanECG) ; print("Failed rejection of ECG outliers graphs")
 
         
+        
+
         x = np.arange(0, len(meanECG[0])*ecg._step, ecg._step)
         while len(x)>len(meanECG[0]):
             x = np.delete(x, -1)
@@ -1162,6 +1142,28 @@ class DisplMeanWindow(QMainWindow):
         legend = QLabel(text)
         legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(legend)
+        
+        
+
+        
+        
+        txt_hr = "HR = "+str(hr)+ " ± "+ str(stdHR) + " bpm (N = "+ str(lenHR) +")"
+        txt_hr += "\nQRS = "+str(qrs)+ " ± "+ str(stdQRS) + " bpm (N = "+ str(lenQRS) +")"
+        txt_hr += "\nQT = "+str(qt)+ " ± "+ str(stdQT) + " bpm (N = "+ str(lenQT) +")"
+        txt_hr += "\nPR = "+str(pr)+ " ± "+ str(stdPR) + " bpm (N = "+ str(lenPR) +")"
+        
+        #text += "<font color='purple'>●</font> P peaks ; "
+        #text += "<font color='magenta'>●</font> Q peaks ; "
+        #text += "<font color='red'>●</font> R peaks ; "
+        #text += "<font color='orange'>●</font> S peaks ; "
+        #text += "<font color='green'>●</font> T peaks ; "
+        #text += "<font color='turquoise'>●</font> P peaks"
+        
+        legend = QLabel(txt_hr)
+        legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(legend)
+        
+        
         
         return
     
