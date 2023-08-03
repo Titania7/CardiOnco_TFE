@@ -1016,28 +1016,28 @@ class DisplMeanWindow(QMainWindow):
         
         print(60/np.diff(realR[1]))
         hr = np.round(np.mean(60/np.diff(realR[1])), 3)
-        stdHR = np.std(60/np.diff(realR[1]))
+        stdHR = np.round(np.std(60/np.diff(realR[1])),3)
         lenHR = len(np.diff(realR[1]))
         
         minlen = min(len(nextT), len(nextQ))
         nextTtr = nextT[:minlen]
         nextQtr = nextQ[:minlen]
         qt = np.round(np.mean((nextTtr-nextQtr)*ecg._step), 3)
-        stdQT = np.std((nextTtr-nextQtr)*ecg._step)
+        stdQT = np.round(np.std((nextTtr-nextQtr)*ecg._step),3)
         lenQT = len((nextTtr-nextQtr)*ecg._step)
         
         minlen = min(len(nextP), len(nextR))
         nextPtr = nextP[:minlen]
         nextRtr = nextR[:minlen]
         pr = np.round(np.mean((nextRtr-nextPtr)*ecg._step),3)
-        stdPR = np.std((nextRtr-nextPtr)*ecg._step)
+        stdPR = np.round(np.std((nextRtr-nextPtr)*ecg._step),3)
         lenPR = len((nextRtr-nextPtr)*ecg._step)
         
         minlen = min(len(nextQ), len(nextS))
         nextQtr = nextQ[:minlen]
         nextStr = nextS[:minlen]
         qrs = np.round(np.mean((nextStr-nextQtr)*ecg._step),3)
-        stdQRS = np.std((nextStr-nextQtr)*ecg._step)
+        stdQRS = np.round(np.std((nextStr-nextQtr)*ecg._step),3)
         lenQRS = len((nextStr-nextQtr)*ecg._step)
         
 
@@ -1148,9 +1148,9 @@ class DisplMeanWindow(QMainWindow):
         
         
         txt_hr = "HR = "+str(hr)+ " ± "+ str(stdHR) + " bpm (N = "+ str(lenHR) +")"
-        txt_hr += "\nQRS = "+str(qrs)+ " ± "+ str(stdQRS) + " bpm (N = "+ str(lenQRS) +")"
+        txt_hr += " ; QRS = "+str(qrs)+ " ± "+ str(stdQRS) + " bpm (N = "+ str(lenQRS) +")"
         txt_hr += "\nQT = "+str(qt)+ " ± "+ str(stdQT) + " bpm (N = "+ str(lenQT) +")"
-        txt_hr += "\nPR = "+str(pr)+ " ± "+ str(stdPR) + " bpm (N = "+ str(lenPR) +")"
+        txt_hr += " ; PR = "+str(pr)+ " ± "+ str(stdPR) + " bpm (N = "+ str(lenPR) +")"
         
         #text += "<font color='purple'>●</font> P peaks ; "
         #text += "<font color='magenta'>●</font> Q peaks ; "
