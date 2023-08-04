@@ -729,9 +729,9 @@ class DisplMeanWindow(QMainWindow):
             if corresponding[i]._title == "lin_SCGvect[m/s^2]":
                 posStart = x[0]
                 posStop = x[-1]
-                self.aoCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
-                graphWidget.addItem(self.aoCursor)
-                self.aoCursor.sigPositionChanged.connect(self.manualAO)
+                self.aolinCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
+                graphWidget.addItem(self.aolinCursor)
+                self.aolinCursor.sigPositionChanged.connect(self.manualAOlin)
                 
                 x = np.arange(0, len(meanAllvect)*linSCG._step, linSCG._step)
                 if len(x)>len(meanAllvect):
@@ -749,6 +749,11 @@ class DisplMeanWindow(QMainWindow):
                 
                 
             elif corresponding[i]._title == "rot_SCGvect[deg/s]":
+                posStart = x[0]
+                posStop = x[-1]
+                self.aorotCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
+                graphWidget.addItem(self.aorotCursor)
+                self.aorotCursor.sigPositionChanged.connect(self.manualAOrot)
                 x = np.arange(0, len(meanAllvectrot)*rotSCG._step, rotSCG._step)
                 if len(x)>len(meanAllvect):
                     x = np.delete(x,-1)
@@ -771,100 +776,125 @@ class DisplMeanWindow(QMainWindow):
                 graphWidget.setXLink(refPlotWidget)
             
             self.layout.addWidget(graphWidget)
-            
-            if corresponding[i]._title == "BPleg" or corresponding[i]._title == "BParm":
-                legend = QLabel("<font color='red'>●</font> BP onsets")
-                legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.layout.addWidget(legend)
                 
-            elif corresponding[i]._title == "lin_SCGvect[m/s^2]":
+                
+            if corresponding[i]._title == "lin_SCGvect[m/s^2]":
                 legend = QLabel("<font color='magenta'>●</font> AO detected 40-90 ms ; <font color='turquoise'>●</font> AO detected as 2d peak")
                 legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.layout.addWidget(legend)
                 
-            if corresponding[i]._title == "lin_SCGvect[m/s^2]":
-                 thenToDisplay = [all_xlin,all_ylin,all_zlin]
-                 thencorresp = [xlinSCG,ylinSCG,zlinSCG]
-                 for i, graph in enumerate(thenToDisplay):
-                     graphWidget = pg.PlotWidget()
-                     for trace in graph:
-                         x = np.arange(0, len(trace)*thencorresp[i]._step, thencorresp[i]._step)
-                         while len(x)>len(trace):
-                             x=np.delete(x,-1)
-                         courbe = graphWidget.plot(x, trace, pen="grey")
-                         courbe.setOpacity(0.3)
-                     courbe = graphWidget.plot(x, np.mean(np.array(graph), axis = 0), pen="magenta")
-                     graphWidget.setTitle("Mean "+thencorresp[i]._title)
-                     graphWidget.setLabel('left', 'Magnitude')
-                     graphWidget.setLabel('bottom', 'Time [s]')
-                     graphWidget.setMinimumHeight(250)
-                     graphWidget.showGrid(x=True, y=True)
-                     self.layout.addWidget(graphWidget)
+                self.ao_4090_label = QLabel("")
+                self.layout.addWidget(self.ao_4090_label)
+                
+                self.aO_2dP_label = QLabel("")
+                self.layout.addWidget(self.aO_2dP_label)
+                
+                self.manualAOlin_label = QLabel(f" Manual AO (linSCG) : {self.aolinCursor.pos().x()} s")
+                self.layout.addWidget(self.manualAOlin_label)
+                                
+                self.xLinCursor = self.displaySCGGraph(all_xlin, xlinSCG)
+                self.xLin_label = QLabel("")
+                self.layout.addWidget(self.xLin_label)
+                self.xLinCursor.sigPositionChanged.connect(self.manualAOxlin)
+                
+                self.yLinCursor = self.displaySCGGraph(all_ylin, ylinSCG)
+                self.yLin_label = QLabel("")
+                self.layout.addWidget(self.yLin_label)
+                self.yLinCursor.sigPositionChanged.connect(self.manualAOylin)
+                
+                self.zLinCursor = self.displaySCGGraph(all_zlin, zlinSCG)
+                self.zLin_label = QLabel("")
+                self.layout.addWidget(self.zLin_label)
+                self.zLinCursor.sigPositionChanged.connect(self.manualAOzlin)
+                    
              
             elif corresponding[i]._title == "rot_SCGvect[deg/s]":
-                 thenToDisplay = [all_xrot,all_yrot,all_zrot]
-                 thencorresp = [xrotSCG,yrotSCG,zrotSCG]
-                 for i, graph in enumerate(thenToDisplay):
-                     graphWidget = pg.PlotWidget()
-                     for trace in graph:
-                         x = np.arange(0, len(trace)*thencorresp[i]._step, thencorresp[i]._step)
-                         while len(x)>len(trace):
-                             x=np.delete(x,-1)
-                         courbe = graphWidget.plot(x, trace, pen="grey")
-                         courbe.setOpacity(0.3)
-                     courbe = graphWidget.plot(x, np.mean(np.array(graph), axis = 0), pen="magenta")
-                     graphWidget.setTitle("Mean "+thencorresp[i]._title)
-                     graphWidget.setLabel('left', 'Magnitude')
-                     graphWidget.setLabel('bottom', 'Time [s]')
-                     graphWidget.setMinimumHeight(250)
-                     graphWidget.showGrid(x=True, y=True)
-                     self.layout.addWidget(graphWidget)
+                 self.manualAOrot_label = QLabel(f"\tManual AO (rotSCG) : {self.aorotCursor.pos().x()} s")
+                 self.layout.addWidget(self.manualAOrot_label)
+                 
+                 self.xRotCursor = self.displaySCGGraph(all_xrot, xrotSCG)
+                 self.xRot_label = QLabel("")
+                 self.layout.addWidget(self.xRot_label)
+                 self.xRotCursor.sigPositionChanged.connect(self.manualAOxrot)
+                 
+                 self.yRotCursor = self.displaySCGGraph(all_yrot, yrotSCG)
+                 self.yRot_label = QLabel("")
+                 self.layout.addWidget(self.yRot_label)
+                 self.yRotCursor.sigPositionChanged.connect(self.manualAOyrot)
+                 
+                 self.zRotCursor = self.displaySCGGraph(all_zrot, zrotSCG)
+                 self.zRot_label = QLabel("")
+                 self.layout.addWidget(self.zRot_label)
+                 self.zRotCursor.sigPositionChanged.connect(self.manualAOzrot)
 
             
         
     #%% Display of the MetaData and the approximative PWV
+
         
-        
-        
-        
-        # Computation of the mean R-Leg and R-Arm
         self.meanR_Leg = np.mean(onsBPLeg_rel)*self.bpLeg._step
-        self.meanR_Arm = np.mean(onsBPArm_rel)*self.bpArm._step
-        
         self.stdR_Leg = np.std(onsBPLeg_rel*self.bpLeg._step)
         self.lenR_Leg = len(onsBPLeg_rel)
+        self.bpLeg_label.setText(" Mean R-bpLeg onset delay : "+str(np.round(self.meanR_Leg,3))+" ± "+str(np.round(self.stdR_Leg,3))+" s (N = "+str(self.lenR_Leg)+")")
+        # Computation of the mean R-Leg and R-Arm
+        
+        self.meanR_Arm = np.mean(onsBPArm_rel)*self.bpArm._step
         self.stdR_Arm = np.std(onsBPArm_rel*self.bpArm._step)
         self.lenR_Arm = len(onsBPArm_rel)
+        self.bpArm_label.setText(" Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" ± "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
+        
         
         # Computation of the mean R-AO for each technique
         self.meanR_AO_4090 = np.mean(relAO_4090)*linSCG._step
-        self.meanR_AO_2dP = np.round(np.mean(relAO_2dPeak))*linSCG._step
-        
         self.stdR_AO_4090 = np.std(relAO_4090*linSCG._step)
-        self.stdR_AO_2dP = np.std(relAO_2dPeak*linSCG._step)
-        
-        # Computation of the mean PWV for each AO measure
+        self.lenAO_4090 = len(relAO_4090)
+        text = " Delay R-AO (40-90 ms technique): "+str(np.round(self.meanR_AO_4090,3))+" ± "+str(np.round(self.stdR_AO_4090,3))+" s (N = "+str(self.lenAO_4090)+")"
         self.pwv_4090 = (0.8*meta[-1])/(self.meanR_Leg - self.meanR_AO_4090)
+        text +=  "     => afPWV = "+ str(np.round(self.pwv_4090 ,3))+" m/s"
+        self.ao_4090_label.setText(text)
+        
+        self.meanR_AO_2dP = np.round(np.mean(relAO_2dPeak))*linSCG._step
+        self.stdR_AO_2dP = np.std(relAO_2dPeak*linSCG._step) 
+        self.lenAO_2dP = len(relAO_2dPeak)
+        text = " Delay R-AO (2d peak technique): "+str(np.round(self.meanR_AO_2dP,3))+" ± "+str(np.round(self.stdR_AO_2dP,3))+" s (N = "+str(self.lenAO_2dP)+")"
         self.pwv_2dP = (0.8*meta[-1])/(self.meanR_Leg - self.meanR_AO_2dP)
+        text +=  "     => afPWV = "+ str(np.round(self.pwv_2dP ,3))+" m/s"
+        self.aO_2dP_label.setText(text)
         
-        
-        
-        #%% Prepare the displays
-        #txt_HR = QLabel("Mean HR (JSON/ML) = "+ str(self.hrJSON) +" +- "+str(np.round(self.stdhrJSON,3)) +' (N = '+str(self.lenHRjson)+') / '+ str(self.hrML)+" +- "+str(np.round(self.stdhrML,3)) +" (N = "+str(self.lenHRml)+") bpm")
-        #txt_QT = QLabel("Mean Q-T intervals (JSON/ML) = "+str(self.qtJSON)+" +- "+str(np.round(self.stdQTjson,3)) +' (N = '+str(self.lenQTjson)+') / '+str(self.qtML)+" +- "+str(np.round(self.stdQTml,3)) +" (N = "+str(self.lenQTml)+") s")
-        #txt_PR = QLabel("Mean P-R intervals (JSON/ML) = "+str(self.prJSON)+" +- "+str(np.round(self.stdPRjson,3)) +' (N = '+str(self.lenPRjson)+') / '+str(self.prML)+" +- "+str(np.round(self.stdPRml,3)) +" (N = "+str(self.lenPRml)+") s")
-        txt_leg_arm = QLabel("Mean R-bpLeg onset delay : "+str(np.round(self.meanR_Leg,3))+" +- "+str(np.round(self.stdR_Leg,3))+" s (N = "+str(self.lenR_Leg)+") ; Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" +- "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
-        pwvtxt_AO_4090 = QLabel("Delay R-AO (40-90 ms technique): "+str(np.round(self.meanR_AO_4090,3))+" +- "+str(np.round(self.stdR_AO_4090,3))+" s => afPWV = "+ str(np.round(self.pwv_4090 ,3))+" m/s")
-        pwvtxt_AO_2dP = QLabel("Delay R-AO (2d peak techniaue): "+str(np.round(self.meanR_AO_2dP,3))+" +- "+str(np.round(self.stdR_AO_2dP,3))+" s => afPWV = "+str(np.round(self.pwv_2dP ,3))+" m/s")
-        self.manualAO_label = QLabel(f"Manual AO : {self.aoCursor.pos().x()} s => afPWV = {self.meanR_Leg - self.aoCursor.pos().x()} m/s")
-        # Display the results
-        for txt in [txt_leg_arm, pwvtxt_AO_4090, pwvtxt_AO_2dP, self.manualAO_label]:#pwvtxt_AO, pwvtxt_leg_arm, pwvtxt]:
-            self.layout.addWidget(txt)
 
         
         self.showMaximized()
     
     #%% Useful functions
+    
+    def displaySCGGraph(self, graph, corresp):
+        graphWidget = pg.PlotWidget()
+        for trace in graph:
+            x = np.arange(0, len(trace)*corresp._step, corresp._step)
+            while len(x)>len(trace):
+                x=np.delete(x,-1)
+            courbe = graphWidget.plot(x, trace, pen="grey")
+            courbe.setOpacity(0.3)
+        courbe = graphWidget.plot(x, np.mean(np.array(graph), axis = 0), pen="magenta")
+
+        graphWidget.setTitle("Mean "+corresp._title)
+        graphWidget.setLabel('left', 'Magnitude')
+        graphWidget.setLabel('bottom', 'Time [s]')
+        graphWidget.setMinimumHeight(250)
+        graphWidget.showGrid(x=True, y=True)
+        
+        posStart = x[0]
+        posStop = x[-1]
+        cursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
+        graphWidget.addItem(cursor)
+        
+        self.layout.addWidget(graphWidget)
+        
+        return cursor
+        
+        
+    
+    
     def saveMeanView(self):
         
         pix = self.central_widget.grab()
@@ -890,10 +920,49 @@ class DisplMeanWindow(QMainWindow):
             pix.save(file_name)
         return
     
-    def manualAO(self):
-        newPosition = self.aoCursor.pos().x()
+    def manualAOxlin(self):
+        newPosition = self.xLinCursor.pos().x()
         newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.manualAO_label.setText(f"Manual AO : "+str(np.round(newPosition,3))+" s => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.xLin_label.setText(f" Manual AO (xlinSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        
+    def manualAOylin(self):
+        newPosition = self.yLinCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.yLin_label.setText(f" Manual AO (ylinSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+
+    def manualAOzlin(self):
+        newPosition = self.zLinCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.zLin_label.setText(f" Manual AO (zlinSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+    
+    
+    def manualAOlin(self):
+        newPosition = self.aolinCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.manualAOlin_label.setText(f" Manual AO (linSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+    
+    
+    def manualAOxrot(self):
+        newPosition = self.xRotCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.xRot_label.setText(f" Manual AO (xrotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        
+    def manualAOyrot(self):
+        newPosition = self.yRotCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.yRot_label.setText(f" Manual AO (yrotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+
+    def manualAOzrot(self):
+        newPosition = self.zRotCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.zRot_label.setText(f" Manual AO (zrotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+    
+    
+    
+    def manualAOrot(self):
+        newPosition = self.aorotCursor.pos().x()
+        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
+        self.manualAOrot_label.setText(f" Manual AO (rotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
     
     def addBP(self, bpSC, mean_bp, onsBPrel):
         
@@ -927,6 +996,13 @@ class DisplMeanWindow(QMainWindow):
         legend = QLabel(text)
         legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(legend)
+        
+        if bpSC._title == "BPleg":
+            self.bpLeg_label = QLabel("")
+            self.layout.addWidget(self.bpLeg_label)
+        else :
+            self.bpArm_label = QLabel("")
+            self.layout.addWidget(self.bpArm_label)
         
         
         
