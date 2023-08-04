@@ -956,65 +956,46 @@ class DisplMeanWindow(QMainWindow):
                 y_ecg = ecg._y[r_p[0][i]-halfRRindexes:r_p[0][i]+trois4RRindexes]
                 meanECG.append(y_ecg)
                 nextR.append(r_p[0][i] + halfRRindexes - r_p[0][i])
-                
-                
-                
-                
-                if p_on[0][i] - r_p[0][i] < 0 and p_on[0][i] - r_p[0][i] > -100:
-                    nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i])
-                elif p_on[0][i] - r_p[0][i-1] < 0 and p_on[0][i] - r_p[0][i-1] > -100:
-                    nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i-1])
-                elif p_on[0][i] - r_p[0][i+1] < 0 and p_on[0][i] - r_p[0][i+1] > -100:
-                    nextPon.append(p_on[0][i] + halfRRindexes - r_p[0][i+1])
-                
-                if p_p[0][i] - r_p[0][i] < 0 and p_p[0][i] - r_p[0][i] > -100:
-                    nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i])
-                elif p_p[0][i] - r_p[0][i-1] < 0 and p_p[0][i] - r_p[0][i-1] > -100:
-                    nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i-1])
-                elif p_p[0][i] - r_p[0][i+1] < 0 and p_p[0][i] - r_p[0][i+1] > -100:
-                    nextP.append(p_p[0][i] + halfRRindexes - r_p[0][i+1])
-                
-                if q_p[0][i] - r_p[0][i] < 0 and q_p[0][i] - r_p[0][i] > -100:
-                    nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i])
-                elif q_p[0][i] - r_p[0][i-1] < 0 and q_p[0][i] - r_p[0][i-1] > -100:
-                    nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i-1])
-                elif q_p[0][i] - r_p[0][i+1] < 0 and q_p[0][i] - r_p[0][i+1] > -100:
-                    nextQ.append(q_p[0][i] + halfRRindexes - r_p[0][i+1])
-                
-                
-                if s_p[0][i] - r_p[0][i] > 0 and s_p[0][i] - r_p[0][i] < 100:
-                    nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i])
-                elif s_p[0][i] - r_p[0][i-1] > 0 and s_p[0][i] - r_p[0][i-1] < 100:
-                    nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i-1])
-                elif s_p[0][i] - r_p[0][i+1] > 0 and s_p[0][i] - r_p[0][i+1] < 100:
-                    nextS.append(s_p[0][i] + halfRRindexes - r_p[0][i+1])
-                    
-                if t_p[0][i] - r_p[0][i] > 0 and t_p[0][i] - r_p[0][i] < 100:
-                    nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i])
-                elif t_p[0][i] - r_p[0][i-1] > 0 and t_p[0][i] - r_p[0][i-1] < 100:
-                    nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i-1])
-                elif t_p[0][i] - r_p[0][i+1] > 0 and t_p[0][i] - r_p[0][i+1] < 100:
-                    nextT.append(t_p[0][i] + halfRRindexes - r_p[0][i+1])
-                
-                
-                if t_off[0][i] - r_p[0][i] > 0 and t_off[0][i] - r_p[0][i] < 100:
-                    nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i])
-                elif t_off[0][i] - r_p[0][i-1] > 0 and t_off[0][i] - r_p[0][i-1] < 100:
-                    nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i-1])
-                elif t_off[0][i] - r_p[0][i+1] > 0 and t_off[0][i] - r_p[0][i+1] < 100:
-                    nextToff.append(t_off[0][i] + halfRRindexes - r_p[0][i+1])
 
-        nextPon = np.array(nextPon)
-        nextP = np.array(nextP)
-        nextQ = np.array(nextQ)
-        nextR = np.array(nextR)
-        nextS = np.array(nextS)
-        nextT = np.array(nextT)
-        nextToff = np.array(nextToff)
+
         
+        def getNextVect(points, rpoints, inflim, suplim):
+            nextVect = []
+            indrec = []
+            for i, pt in enumerate(points):
+                for rp in rpoints:
+                    difference = pt-rp
+                    if difference < suplim and difference > inflim:
+                        nextVect.append(difference + halfRRindexes)
+                        indrec.append(i)
+            return nextVect, indrec
+        
+        nextPon, indPon = getNextVect(p_on[0], r_p[0], inflim = -100, suplim = 0)
+        nextP, indP = getNextVect(p_p[0], r_p[0], inflim = -100, suplim = 0)
+        nextQ, indQ = getNextVect(q_p[0], r_p[0], inflim = -100, suplim = 0)
+        nextS, indS  = getNextVect(s_p[0], r_p[0], inflim = 0, suplim = 100)
+        nextT, indT  = getNextVect(t_p[0], r_p[0], inflim = 0, suplim = 100)
+        nextToff, indToff = getNextVect(t_off[0], r_p[0], inflim = 0, suplim = 100)
+            
+        nextPon = np.array(nextPon)
+        nextPon = np.delete(nextPon, -1)
+        nextP = np.array(nextP)
+        nextP = np.delete(nextP, -1)
+        nextQ = np.array(nextQ)
+        nextQ = np.delete(nextQ, -1)
+        nextR = np.array(nextR)
+        nextR = np.delete(nextR, -1)
+        nextS= np.array(nextS)
+        nextS= np.delete(nextS, -1)
+        nextT= np.array(nextT)
+        nextT= np.delete(nextT, -1)
+        nextToff = np.array(nextToff)
+        nextToff = np.delete(nextToff, -1)
+        
+        print("Before LOF ", len(meanECG), len(nextPon), len(nextP), len(nextQ), len(nextR), len(nextS), len(nextT), len(nextToff))
         # Computation of the HR
         
-        print(60/np.diff(realR[1]))
+        #print(60/np.diff(realR[1]))
         hr = np.round(np.mean(60/np.diff(realR[1])), 3)
         stdHR = np.round(np.std(60/np.diff(realR[1])),3)
         lenHR = len(np.diff(realR[1]))
@@ -1041,16 +1022,19 @@ class DisplMeanWindow(QMainWindow):
         lenQRS = len((nextStr-nextQtr)*ecg._step)
         
 
-
-        
         try: 
             meanECG, outIdx = cleanLOF(meanECG, 10, 0.25)
-            for nextPeak in [nextR, nextP, nextQ, nextS, nextT, nextToff, nextPon]:
-                nextPeak = [nextPeak[i] for i in range(len(nextPeak)) if i not in outIdx]
+            nextPon = [nextPon[i] for i in range(len(nextPon)) if i not in outIdx]
+            nextP = [nextP[i] for i in range(len(nextP)) if i not in outIdx]
+            nextQ = [nextQ[i] for i in range(len(nextQ)) if i not in outIdx]
+            nextR = [nextR[i] for i in range(len(nextR)) if i not in outIdx]
+            nextS = [nextS[i] for i in range(len(nextS)) if i not in outIdx]
+            nextT = [nextT[i] for i in range(len(nextT)) if i not in outIdx]
+            nextToff = [nextToff[i] for i in range(len(nextToff)) if i not in outIdx]
         # Make sure all the graphs are the same length (max one)
         except: meanECG = self.all_SameLen(meanECG) ; print("Failed rejection of ECG outliers graphs")
 
-        
+        print("After LOF ", len(meanECG), len(nextPon), len(nextP), len(nextQ), len(nextR), len(nextS), len(nextT), len(nextToff))
         
 
         x = np.arange(0, len(meanECG[0])*ecg._step, ecg._step)
@@ -1074,54 +1058,63 @@ class DisplMeanWindow(QMainWindow):
         for elem in meanECG:
             courbe = graphWidget.plot(x, elem, pen='grey')
             courbe.setOpacity(0.3)
+        
+        for i, p in enumerate(nextPon):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsPon = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=bleu, pen=None, label = "P onsets")
+            else :
+                pointsPon = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=bleu, pen=None)
+            graphWidget.addItem(pointsPon) 
+        
+        for i, p in enumerate(nextP):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsP = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=violet, pen=None, label = "P peaks")
+            else :
+                pointsP = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=violet, pen=None)
+            graphWidget.addItem(pointsP) 
+         
+        for i, p in enumerate(nextQ):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsQ = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rose, pen=None, label = "Q peaks")
+            else :
+                pointsQ = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rose, pen=None)
+            graphWidget.addItem(pointsQ) 
+        
+        for i, p in enumerate(nextR):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsR = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rouge, pen=None, label = "R peaks")
+            else :
+                pointsR = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rouge, pen=None)
+            graphWidget.addItem(pointsR)
             
-        for i, elem in enumerate(meanECG):
-            countPon, countP, countQ, countR, countS, countT, countToff = [0,0,0,0,0,0,0]
-            if nextPon[i] < len(x) :
-                if countPon == 0 :
-                    pointsPon = pg.ScatterPlotItem(x=[x[nextPon[i]]], y=[elem[nextPon[i]]], brush=bleu, pen=None, label = "P onsets")
-                    countPon += 1
-                else :
-                    pointsPon = pg.ScatterPlotItem(x=[x[nextPon[i]]], y=[elem[nextPon[i]]], brush=bleu, pen=None)
-            if nextP[i] < len(x) :
-                if countP == 0 :
-                    pointsP = pg.ScatterPlotItem(x=[x[nextP[i]]], y=[elem[nextP[i]]], brush=violet, pen=None, label = "P peaks")
-                    countP += 1
-                else :
-                    pointsP = pg.ScatterPlotItem(x=[x[nextP[i]]], y=[elem[nextP[i]]], brush=violet, pen=None)
-            if nextQ[i] < len(x) :
-                if countQ == 0 :
-                    pointsQ = pg.ScatterPlotItem(x=[x[nextQ[i]]], y=[elem[nextQ[i]]], brush=rose, pen=None, label = "Q peaks")
-                    countQ += 1
-                else :
-                    pointsQ = pg.ScatterPlotItem(x=[x[nextQ[i]]], y=[elem[nextQ[i]]], brush=rose, pen=None)
-            if nextR[i] < len(x) :
-                if countR == 0 :
-                    pointsR = pg.ScatterPlotItem(x=[x[nextR[i]]], y=[elem[nextR[i]]], brush=rouge, pen=None, label = "R peaks")
-                    countR += 1
-                else :
-                    pointsR = pg.ScatterPlotItem(x=[x[nextR[i]]], y=[elem[nextR[i]]], brush=rouge, pen=None)           
-            if nextS[i] < len(x) :
-                if countS == 0 :
-                    pointsS = pg.ScatterPlotItem(x=[x[nextS[i]]], y=[elem[nextS[i]]], brush=orange, pen=None, label = "S peaks")
-                    countS += 1
-                else :
-                    pointsS = pg.ScatterPlotItem(x=[x[nextS[i]]], y=[elem[nextS[i]]], brush=orange, pen=None)            
-            if nextT[i] < len(x) :
-                if countT == 0 :
-                    pointsT = pg.ScatterPlotItem(x=[x[nextT[i]]], y=[elem[nextT[i]]], brush=vert, pen=None, label = "T peaks")
-                    countT += 1
-                else :
-                    pointsT = pg.ScatterPlotItem(x=[x[nextT[i]]], y=[elem[nextT[i]]], brush=vert, pen=None)            
-            if nextToff[i] < len(x) :
-                if countToff == 0 :
-                    pointsToff = pg.ScatterPlotItem(x=[x[nextToff[i]]], y=[elem[nextToff[i]]], brush=turquoise, pen=None, label = "T offsets")
-                    countToff += 1
-                else :
-                    pointsToff = pg.ScatterPlotItem(x=[x[nextToff[i]]], y=[elem[nextToff[i]]], brush=turquoise, pen=None)
-            graphWidget.addLegend()
-            for points in [pointsPon, pointsP, pointsQ, pointsR, pointsS, pointsT, pointsToff]:
-                graphWidget.addItem(points) 
+        for i, p in enumerate(nextS):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsS = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=orange, pen=None, label = "S peaks")
+            else :
+                pointsS = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=orange, pen=None)
+            graphWidget.addItem(pointsS)
+            
+        for i, p in enumerate(nextT):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsT = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=vert, pen=None, label = "T peaks")
+            else :
+                pointsT = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=vert, pen=None)
+            graphWidget.addItem(pointsT)
+        
+        
+        for i, p in enumerate(nextToff):
+            currentgraph = meanECG[i]
+            if i == 0:
+                pointsToff = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=turquoise, pen=None, label = "T offsets")
+            else :
+                pointsToff = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=turquoise, pen=None)
+            graphWidget.addItem(pointsToff)
         
         graphWidget.setTitle("Mean "+ecg._title)
         graphWidget.setLabel('left', 'Magnitude')
