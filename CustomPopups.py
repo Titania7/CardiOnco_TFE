@@ -1076,12 +1076,12 @@ class DisplMeanWindow(QMainWindow):
         stdHR = np.round(np.std(60/np.diff(realR[1])),3)
         lenHR = len(np.diff(realR[1]))
         
-        minlen = min(len(nextT), len(nextQ))
-        nextTtr = nextT[:minlen]
+        minlen = min(len(nextToff), len(nextQ))
+        nextTofftr = nextToff[:minlen]
         nextQtr = nextQ[:minlen]
-        qt = np.round(np.mean((nextTtr-nextQtr)*ecg._step), 3)
-        stdQT = np.round(np.std((nextTtr-nextQtr)*ecg._step),3)
-        lenQT = len((nextTtr-nextQtr)*ecg._step)
+        qt = np.round(np.mean((nextTofftr-nextQtr)*ecg._step), 3)
+        stdQT = np.round(np.std((nextTofftr-nextQtr)*ecg._step),3)
+        lenQT = len((nextTofftr-nextQtr)*ecg._step)
         
         minlen = min(len(nextP), len(nextR))
         nextPtr = nextP[:minlen]
