@@ -57,7 +57,7 @@ def index_conv(index : int, scg_fs, ecg_fs, indexType : str = None):
         #print("After conversion : index =", converted_index)
     return converted_index
 
-def getStartStopIndexes(ecg_JSON, ecg_MLd, show = False):
+def getStartStopIndexes(ecg_JSON, ecg_MLd, minHP = False, show = False):
     
     """
     This function allows to synchronize the 2 ECGs json and matlab in order to give the Matlab's begin and end indexes for
@@ -76,7 +76,7 @@ def getStartStopIndexes(ecg_JSON, ecg_MLd, show = False):
     - [start_index, stop_index] : list of integers containing the start and stop indexes of the ECG for the MatLab file
         (MatLab file is usually the longest)
     """
-    
+    print("Hello World")
 
     # Select the shortest file in NUMBER OF SAMPLES :
     if len(ecg_JSON._x) > len(ecg_MLd._x):
@@ -99,7 +99,8 @@ def getStartStopIndexes(ecg_JSON, ecg_MLd, show = False):
     x = np.arange(0, len(a), 1)
     aSG = SingleGraph(x, a, samplerate=1, step = 1)
     # Clean the a from its low frequency variations to avoid the V shapes
-    a = butterHighPass(aSG, filtorder=3, limfreq=0.05)
+    if minHP :
+        a = butterHighPass(aSG, filtorder=3, limfreq=0.05)
     
     # Create a search Window for the max of correlation in a in case the mean graph looks like a V
     # in which case => max correlation too soon of too late can happen
@@ -179,7 +180,7 @@ def getStartStopIndexes(ecg_JSON, ecg_MLd, show = False):
         plt.close()
 
         
-
+    print(biggestLen._title)
     return biggestLen, [indexMaxCorr-len(smallestLen._y), indexMaxCorr]
 
 def butterCutPass(graph : SingleGraph, filtorder : int, limfreqs : list, show=False):
@@ -485,74 +486,31 @@ def detect_qrs(ecgSignal, clean_technique, ecg_delineate, lims = [], show = Fals
     
     return [p_peaks_indexes, p_peaks_time], [q_peaks_indexes, q_peaks_time], [r_peaks_indexes, r_peaks_time], [s_peaks_indexes, s_peaks_time], [t_peaks_indexes, t_peaks_time], [p_onsets_indexes, p_onsets_time], [t_offsets_indexes, t_offsets_time]
 
-def getBpOnsets_tang(bpGraph, rPeaks, lims = [], filt = False, show = False):
+def getBpOnsets_tang(bpGraphList, fs, title, filt = False, show = False):
     
     """
     # Computation of the onset points with the intersecting tangents method
 
     """
-    
-    limSamples = []
-    if len(lims) > 0 :
-        for item in lims: # Go through the 2 items
-            limSamples.append(item*bpGraph._samplerate)
-        x = np.arange(min(lims), max(lims), bpGraph._step)
-        
-    else :
-        x = np.arange(bpGraph._x[0], bpGraph._x[-1], bpGraph._step)
-
-    # We stock the ranges of indexes inside x_min and x_max
-    x_min = []
-    x_max = []
-    for i in range(len(rPeaks[0])-1):
-        if rPeaks[0][i] >= x[0]*bpGraph._samplerate and rPeaks[0][i+1]-10 < x[-1]*bpGraph._samplerate:
-            x_min.append(rPeaks[0][i])
-            x_max.append(rPeaks[0][i+1]-10)
-            
-    #print(x_min, x_max)
-    
-    #print(x_min, x_max)
     bpOnsetsindex = []
     bpOnsetstime = []
-    bpOnsetsY = []
-    # For each R peak :
-    for k in range(len(x_min)):
-        limMin = x_min[k]
-        limMax = x_max[k]
-        
-        #print("lims = ", limMin, limMax)
-        
-        x2 = np.arange(limMin, limMax)
-        firstGraph = bpGraph._y[limMin:limMax]
-        
-        #print(len(x), len(firstGraph))
-        
+    
+    x = np.arange(0, len(bpGraphList[0])/fs, 1/fs)
+    while len(x)>len(bpGraphList[0]):
+        x = np.delete(x, -1)
+    while len(x)<len(bpGraphList[0]):
+        x = np.append(x, x[-1]+1/fs)
+    
+    for k, bpGraph in enumerate(bpGraphList):
+
         # Compute first derivative
-        slope_Y = np.diff(firstGraph)/np.diff(x2)
+        slope_Y = np.diff(bpGraph)/np.diff(x)
         # Add a the last value twice to deriv => same shape as firstGraph
         derivNotCleaned = np.append(slope_Y, slope_Y[-1])
 
-        """ Cleaning of the gradient with polynomial approximation - Not good enough
         
-        plt.figure()
-        poly = np.polyfit(x,derivNotCleaned,40)
-        deriv = np.poly1d(poly)(x)
-        plt.plot(x,derivNotCleaned)
-        plt.plot(x,deriv)
-        plt.show()
-        """
-        
-        """ Cleaning of the derivative with Fourier transform - OK
-        
-        # Visualization of the fourier signal
-        yf = rfft(derivNotCleaned)
-        xf = rfftfreq(len(x), bpGraph._step)
-        plt.plot(xf, np.abs(yf))
-        plt.show()
-        """
         if filt == True:
             # Use of a butterworth filter to cut out the noise
-            #b, a = signal.butter(3, 0.05)
             b, a = signal.butter(5, 0.1)
             zi = signal.lfilter_zi(b, a)
             z, _ = signal.lfilter(b, a, derivNotCleaned, zi=zi*derivNotCleaned[0])
@@ -562,30 +520,16 @@ def getBpOnsets_tang(bpGraph, rPeaks, lims = [], filt = False, show = False):
             # Cleaned signal is stored in "deriv" variable
             deriv = y
         else:
-            deriv = derivNotCleaned
-    
-        """ Visualization of the Fourier-cleaned signal
-        
-        # Visualization of the cleaned signal
-        plt.figure
-        plt.plot(x, derivNotCleaned, 'b', alpha=0.75)
-        plt.plot(x, z, 'r--', x, z2, 'r', x, y, 'k')
-        plt.legend(('noisy signal', 'lfilter, once', 'lfilter, twice',
-                    'filtfilt'), loc='best')
-        plt.grid(True)
-        plt.show()
-        """
-
-        
+            deriv = derivNotCleaned     
     
     
     
         # Detection of the min value in firstGraph and max value in deriv
-        maxVal = np.max(firstGraph)
-        for i in range(len(firstGraph)):
-            if firstGraph[i] == maxVal:
+        maxVal = np.max(bpGraph)
+        for i in range(len(bpGraph)):
+            if bpGraph[i] == maxVal:
                 relmaxValIndex = i
-        searchZone = firstGraph[:relmaxValIndex]
+        searchZone = bpGraph[:relmaxValIndex]
         
         minIndex = np.argmin(searchZone)
         maxIndex = np.argmax(deriv)
@@ -593,51 +537,41 @@ def getBpOnsets_tang(bpGraph, rPeaks, lims = [], filt = False, show = False):
     
         # First tangent calculation :
         valy = searchZone[minIndex]
-        valx = x2[minIndex]
+        valx = x[minIndex]
         #amin = deriv[minIndex]
         # We force the derivative of the minumum to zero
         amin = 0
         bmin = valy-amin*valx
-        tgMin = amin*x2+bmin
+        tgMin = amin*x+bmin
         # Second tangent calculation :
-        valy = firstGraph[maxIndex]
-        valx = x2[maxIndex]
+        valy = bpGraph[maxIndex]
+        valx = x[maxIndex]
         amax = deriv[maxIndex]
         bmax = valy-amax*valx
-        tgMaxDeriv = amax*x2+bmax
+        tgMaxDeriv = amax*x+bmax
         # Determincation of the intersection point :
         x_inters = (bmax-bmin)/(amin-amax)
         y_inters = amin*x_inters+bmin
-        
-        """ Verification of values found :
-        print("Graph : min_y = ", minVal)
-        print("Deriv : y_max' = ", maxDeriv)
-        print("Graph : x_min of y_min = ", (minIndex-halfDiff)/bpGraph._samplerate)
-        print("Deriv : y_min' = f'(x_min) = ", deriv[minIndex])
-        print("Deriv : x_max' = f'(y_max') = ", (maxIndex-halfDiff)/bpGraph._samplerate)
-        print("Graph : y_gradMax = f(x_max') = ", firstGraph[maxIndex])
-        print("Point of intersection = [", x_inters, ";", y_inters,"]")
-        """    
-        
+
         # Visualisation of the intersection with signal cleaned :
         if show == True :
             plt.figure()
             fig, axis = plt.subplots(2, 1, figsize=(15, 8), sharex=True)
-            axis[0].plot(x2, firstGraph, label = bpGraph._title)
-            axis[0].plot(x2[minIndex], firstGraph[minIndex], 'o', color = 'magenta', label = "Min pressure point")
-            axis[0].plot(x2, tgMin, '--',color = 'magenta', label = 'Min pressure tangent')
-            axis[0].plot(x2[maxIndex], firstGraph[maxIndex], 'o', color = 'purple')
-            axis[0].plot(x2, tgMaxDeriv, '--',color = 'purple', label = 'Max gradient tangent')
+            axis[0].plot(x, bpGraph, label = title)
+            axis[0].plot(x[minIndex], bpGraph[minIndex], 'o', color = 'magenta', label = "Min pressure point")
+            axis[0].plot(x, tgMin, '--',color = 'magenta', label = 'Min pressure tangent')
+            axis[0].plot(x[maxIndex], bpGraph[maxIndex], 'o', color = 'purple')
+            axis[0].plot(x, tgMaxDeriv, '--',color = 'purple', label = 'Max gradient tangent')
             axis[0].set_title("Graph number "+ str(k))
-            axis[0].set_ylim([np.min(firstGraph)-0.5*(np.mean(firstGraph)-np.min(firstGraph)),np.max(firstGraph)+0.5*(np.max(firstGraph)-np.mean(firstGraph))])
+            axis[0].set_ylim([np.min(bpGraph)-0.5*(np.mean(bpGraph)-np.min(bpGraph)),np.max(bpGraph)+0.5*(np.max(bpGraph)-np.mean(bpGraph))])
             axis[0].plot(x_inters, y_inters, 'o', color = 'red', label = 'Onset of the pressure bump')
             axis[0].legend(loc="best")
         
             axis[0].grid()
-            axis[1].plot(x2, derivNotCleaned, label = 'Raw gradient')
-            axis[1].plot(x2, deriv, label = 'Cleaned gradient')
-            axis[1].plot(x2[maxIndex], deriv[maxIndex], 'o', color = 'purple', label = "Max gradient point")
-            axis[1].plot(x2[minIndex], deriv[minIndex], 'o', color = 'magenta')
+            axis[1].plot(x, derivNotCleaned, label = 'Raw gradient')
+            axis[1].plot(x, deriv, label = 'Cleaned gradient')
+            axis[1].plot(x[maxIndex], deriv[maxIndex], 'o', color = 'purple', label = "Max gradient point")
+            axis[1].plot(x[minIndex], deriv[minIndex], 'o', color = 'magenta')
             axis[1].set_title("Value of its gradient")
             axis[1].legend(loc="best")
             axis[1].grid()
@@ -649,12 +583,12 @@ def getBpOnsets_tang(bpGraph, rPeaks, lims = [], filt = False, show = False):
             plt.show()
             plt.close()
         
-        x_int_index = int(x_inters)
-        bpOnsetsindex.append(x_int_index)
-        bpOnsetstime.append(x_int_index/bpGraph._samplerate)
-        bpOnsetsY.append(y_inters)
-   
-    return [bpOnsetsindex, bpOnsetstime], bpOnsetsY # Index then time then Y
+        
+        bpOnsetstime.append(x_inters)
+        bpOnsetsindex.append(int(np.round(x_inters*fs)))
+        
+        
+    return [bpOnsetsindex, bpOnsetstime]# Index then time then Y
 
 def getBpOnsets_2dDeriv(bp, rPeaks, lims =[], show = False):
     

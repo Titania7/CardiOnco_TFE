@@ -292,9 +292,9 @@ class DisplMeanWindow(QMainWindow):
         
         
         
-        #self.setMinimumSize(700, 900)
+        self.setMinimumSize(700, 900)
         # Full screen mode
-        self.showMaximized()
+        #self.showMaximized()
         self.setWindowTitle("Mean graphs display")
         self.setWindowIcon(QIcon("icon.png"))
         
@@ -313,19 +313,11 @@ class DisplMeanWindow(QMainWindow):
         
         [p_pML, q_pML, r_pML, s_pML, t_pML, p_onML, t_offML] = pqrstMAT
         [p_pJSON, q_pJSON, r_pJSON, s_pJSON, t_pJSON, p_onJSON, t_offJSON] = pqrstJSON
-        
+        #print(len(r_pML[0]), len(r_pJSON[0]))
        
-        
-        # Make them (p_pML, q_pML etc) all the same length
-        for pqrstList in [pqrstMAT, pqrstJSON]:
-            min_len = np.min([len(item[0]) for item in pqrstList])
-            for item in pqrstList:
-                while len(item[0]) > min_len:
-                    item[0].pop()
-                    item[1].pop()
-
         #%% Retrieval + identification of all the tracks available
-        
+        startindex = timelim[0]
+        stopindex = timelim[1]
 
         legCut = False
         for i in range(len(infoVect)):
@@ -336,6 +328,8 @@ class DisplMeanWindow(QMainWindow):
                     ecgJSON = infoVect[i][0]
                 elif infoVect[i][0]._title == "BPleg":
                     bpLeg = infoVect[i][0]
+                    bpLeg._y = butterCutPass(bpLeg, 4, [1,bpLeg._samplerate/2-10])
+                    """
                     # We get the BPleg onsets on the whole graph then on the timelim if non-successful
                     try:
                         onsBPLeg, bpLegY = getBpOnsets_tang(bpLeg, r_pML, filt = True, show = False)
@@ -361,22 +355,21 @@ class DisplMeanWindow(QMainWindow):
                             stopindex = int(timelim[1]*bpLeg._samplerate)
                             onsBPLeg[0] = list(np.array(onsBPLeg[0])-startindex)
                             onsBPLeg[1] = list(np.array(onsBPLeg[1])-timelim[0])
-                            
-                            """ #Verification => OK
-                            plt.plot(bpLeg._x[startindex:stopindex], bpLeg._y[startindex:stopindex])
-                            plt.plot(bpLeg._x[onsBPLeg[0]]+timelim[0], bpLegY, 'o')
-                            plt.title("Verification of the onsets detections for BPleg")
-                            plt.show()
-                            """
-
+                    """
                 elif infoVect[i][0]._title == "BParm":
                     orig_bpArm = infoVect[i][0]
                     # We take into account the time limitations asked by the user for this one
+                    #print(timelim)
                     startindex = int(timelim[0]*orig_bpArm._samplerate)
                     stopindex = int(timelim[1]*orig_bpArm._samplerate)
+                    print(timelim, startindex, stopindex, len(orig_bpArm._x))
+                    
                     # We create another instance of bpArm in order to update the timelims at each instance of this window
                     self.bpArm = SingleGraph(orig_bpArm._x[startindex:stopindex], orig_bpArm._y[startindex:stopindex], orig_bpArm._title, orig_bpArm._samplerate, orig_bpArm._step)
+                    self.bpArm._y = butterCutPass(self.bpArm, 4, [1,self.bpArm._samplerate/2-10])
 
+                    
+                    """ 
                     # We get the BParm onsets on the time limitations given by the user
                     try:
                         onsBPArm, bpArmY = getBpOnsets_tang(orig_bpArm, r_pML, lims=timelim, filt = True, show = False)    
@@ -391,13 +384,6 @@ class DisplMeanWindow(QMainWindow):
                         
                     onsBPArm[0] = list(np.array(onsBPArm[0])-startindex)
                     onsBPArm[1] = list(np.array(onsBPArm[1])-timelim[0])
-                    
-                    
-                    """ #Verification => OK
-                    plt.plot(self.bpArm._x, self.bpArm._y)
-                    plt.plot(self.bpArm._x[onsBPArm[0]], bpArmY, 'o')
-                    plt.title("Verification of the restricted zone for BParm")
-                    plt.show()
                     """
                 
                 elif infoVect[i][0]._title == "x_scgLin[m/s^2]":
@@ -428,21 +414,37 @@ class DisplMeanWindow(QMainWindow):
         
         # Go through the ecg_indexes of the r peaks (matlab graphs)
         for i in range(len(r_pML[0])-1):
-            
-            #print(startindex, r_pML[0][i]-startindex, r_pML[0][i+1]-startindex, len(self.bpArm._x))
+            #print(startindex, r_pML[1][i]*self.bpArm._samplerate, r_pML[1][i+1]*self.bpArm._samplerate, len(self.bpArm._x))
             
             if r_pML[0][i+1] < len(ecgML._x):
                 y_ecgML = ecgML._y[r_pML[0][i]:r_pML[0][i+1]]
                 mean_ecgML.append(y_ecgML)
+
                 authorizedList.append(i)
+                
             if r_pML[0][i+1] < len(bpLeg._x):
                 y_bpLeg = bpLeg._y[r_pML[0][i]:r_pML[0][i+1]]
                 mean_bpLeg.append(y_bpLeg)
             if r_pML[0][i]-startindex> 0 and r_pML[0][i+1]-startindex < len(self.bpArm._x):
+                #print("I'm in !")
                 y_bpArm = self.bpArm._y[r_pML[0][i]-startindex:r_pML[0][i+1]-startindex]
                 mean_bpArm.append(y_bpArm)
         
+        minsize = np.min([len(vect) for vect in mean_bpArm])
+        for i, vect in enumerate(mean_bpArm):
+            while len(mean_bpArm[i])>minsize:
+                mean_bpArm[i] = np.delete(mean_bpArm[i],-1)
+                
+        minsize  = np.min([len(vect) for vect in mean_bpLeg])
+        for i, vect in enumerate(mean_bpLeg):
+            while len(mean_bpLeg[i])>minsize:
+                mean_bpLeg[i] = np.delete(mean_bpLeg[i],-1)
         
+        
+
+                
+        
+        """
         p_onML0 = [p_onML[0][i] for i in range(len(p_onML[0])) if i in authorizedList]
         p_onML1 = [p_onML[1][i] for i in range(len(p_onML[1])) if i in authorizedList]
         p_onML = [p_onML0, p_onML1]
@@ -464,29 +466,8 @@ class DisplMeanWindow(QMainWindow):
         t_offML0 = [t_offML[0][i] for i in range(len(t_offML[0])) if i in authorizedList]
         t_offML1 = [t_offML[1][i] for i in range(len(t_offML[1])) if i in authorizedList]
         t_offML = [t_offML0, t_offML1]
+        """
         
-        
-        
-
-
-        # Artificially put the beginning level of all the bpArm and bpLeg chunks at the same amplitude at the beginning
-        minAmpl_bpArm = []
-        minAmpl_bpLeg = []
-        
-        for chunk in mean_bpArm:
-            minAmpl_bpArm.append(chunk[0])
-        for chunk in mean_bpLeg:
-            minAmpl_bpLeg.append(chunk[0])
-        minAmpl_bpArm = np.min(minAmpl_bpArm)
-        minAmpl_bpLeg = np.min(minAmpl_bpLeg)
-        #print("Minimum amplitudes for bpleg and bparm :", minAmpl_bpLeg, minAmpl_bpArm)
-        for i in range(len(mean_bpArm)):
-            mean_bpArm[i] = list(np.array(mean_bpArm[i] - (mean_bpArm[i][0]- minAmpl_bpArm)))
-        for i in range(len(mean_bpLeg)):
-            mean_bpLeg[i] = list(np.array(mean_bpLeg[i] - (mean_bpLeg[i][0]- minAmpl_bpLeg)))
-
-        
-
         # Definition of the minimum length to take into account the mean graphs
         alldiff = []
         for i in range(len(r_pJSON[0])-1):
@@ -508,7 +489,6 @@ class DisplMeanWindow(QMainWindow):
         allVectlin = []
         allVectrot = []
         
-        #print("all lengths = ", len(ecgJSON._y), len(linSCG._y), len(rotSCG._y))
         
         # Go through the ecg_indexes of the r peaks
         for i in range(len(r_pJSON[0])-1):
@@ -542,32 +522,31 @@ class DisplMeanWindow(QMainWindow):
             allVectlin.append(y_vectLin[0:length-1])
             allVectrot.append(y_vectRot[0:length-1])
         
-        for a in [p_pJSON, q_pJSON, r_pJSON, s_pJSON, t_pJSON, p_onJSON, t_offJSON]:
-            if len(mean_ecgJSON) < len(a[0]):
-                a[0].pop()
-                a[1].pop()
-        
-
-        #print(len(mean_ecgML), len(r_pML[0]), len(s_pML[0]), len(t_pML[0]), len(t_offML[0]), len(p_onML[0]), len(p_pML[0]), len(q_pML[0]))
-        #print(len(mean_ecgJSON), len(r_pJSON[0]), len(s_pJSON[0]), len(t_pJSON[0]), len(t_offJSON[0]), len(p_onJSON[0]), len(p_pJSON[0]), len(q_pJSON[0]))
 
         
         #%% Rejection of all the aberrant graphs for the superposed graphs
         
-        try:
-            mean_ecgML, idx_ecgML = cleanLOF(mean_ecgML, 10, 0.25)
-        # Make sure all the graphs are the same length (max one)
-        except: mean_ecgML = self.all_SameLen(mean_ecgML) ; print("Rejection of outliers graphs for ecgML unsuccessful")
         
-        try: mean_bpLeg, idx_bpLeg = cleanLOF(mean_bpLeg, 5, 0.3)
-        except: mean_bpLeg = self.all_SameLen(mean_bpLeg) ; print("Rejection of outliers graphs for bpLeg unsuccessful")
+        def returnCleaned(liste2D, indexes):
+            new0 = [liste2D[0][i] for i in range(len(liste2D[0])) if i not in indexes]
+            new1 = [liste2D[1][i] for i in range(len(liste2D[1])) if i not in indexes]
+            new = [new0, new1]
+            
+            return new
+
+
+        self.addECG_centerR(ecgML)
+        self.printHRV(ecgML, pqrstMAT)
+        
+        try: mean_bpLeg, idx_bpLeg = cleanLOF(mean_bpLeg, 5, 0.4)
+        except: print("Rejection of outliers graphs for bpLeg unsuccessful")
         
         # Does not work with the bpArm if it is too short
-        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.05)
-        except: mean_bpArm = self.all_SameLen(mean_bpArm) ; print("Rejection of outliers graphs for bpArm unsuccessful")
+        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.1)
+        except: print("Rejection of outliers graphs for bpArm unsuccessful")
         
-        try: mean_ecgJSON, idx_ecgJSON = cleanLOF(mean_ecgJSON, 10, 0.25)
-        except: mean_ecgJSON = self.all_SameLen(mean_ecgJSON) ; print("Rejection of outliers graphs for ecgJSON unsuccessful")
+        self.addECG_centerR(ecgJSON)
+        self.printHRV(ecgJSON, pqrstJSON)
       
         try: allVectlin, idx_Vectlin = cleanLOF(allVectlin)
         except: allVectlin = self.all_SameLen(allVectlin) ; print("Rejection of outliers graphs for scgLin unsuccessful")
@@ -605,6 +584,10 @@ class DisplMeanWindow(QMainWindow):
         relAO_4090 = getAO_4090ms(allVectlin, linSCG._samplerate, show = False)
         relAO_2dPeak = getAO_2pAfter40ms(allVectlin, linSCG._samplerate, show = False)
         
+        onsBPLeg = getBpOnsets_tang(mean_bpLeg, bpLeg._samplerate, bpLeg._title, filt = True, show = False)
+        onsBPArm = getBpOnsets_tang(mean_bpArm, self.bpArm._samplerate, self.bpArm._title, filt = True, show = False)
+        
+        
         #%% Definition of colors for the graphs
         
         rouge = QtGui.QBrush(QtGui.QColor(255, 0, 0, 85)) #R
@@ -619,78 +602,11 @@ class DisplMeanWindow(QMainWindow):
         
         self.allecgML, self.allbpLeg, self.allbpArm, self.allecgJSON, self.allVectlin, self.allVectrot = mean_ecgML, mean_bpLeg, mean_bpArm, mean_ecgJSON, allVectlin, allVectrot
         self.ecgML, self.bpLeg, self.bpArm, self.ecgJSON, self.linSCG, self.rotSCG = ecgML, bpLeg, self.bpArm, ecgJSON, linSCG, rotSCG
-        
-        def returnCleaned(liste2D, indexes):
-            new0 = []
-            new1 = []
-            new0 = [liste2D[0][i] for i in range(len(liste2D[0])) if i not in indexes]
-            new1 = [liste2D[1][i] for i in range(len(liste2D[1])) if i not in indexes]
-            new = [new0, new1]
-            
-            return new
-        
-        
-        
-        ecgp_pML = returnCleaned(p_pML, idx_ecgML)
-        ecgq_pML = returnCleaned(q_pML, idx_ecgML)    
-        ecgr_pML = returnCleaned(r_pML, idx_ecgML)
-        ecgs_pML = returnCleaned(s_pML, idx_ecgML)
-        ecgt_pML = returnCleaned(t_pML, idx_ecgML)
-        ecgp_onML = returnCleaned(p_onML, idx_ecgML)
-        ecgt_offML = returnCleaned(t_offML, idx_ecgML)
-        pqrstMATcl = [ecgp_pML, ecgq_pML, ecgr_pML, ecgs_pML, ecgt_pML, ecgp_onML, ecgt_offML]
-        
-        ecgp_pJSON = returnCleaned(p_pJSON, idx_ecgJSON)
-        ecgq_pJSON = returnCleaned(q_pJSON, idx_ecgJSON)
-        ecgr_pJSON = returnCleaned(r_pJSON, idx_ecgJSON)
-        ecgs_pJSON = returnCleaned(s_pJSON, idx_ecgJSON)
-        ecgt_pJSON = returnCleaned(t_pJSON, idx_ecgJSON)
-        ecgp_onJSON = returnCleaned(p_onJSON, idx_ecgJSON)
-        ecgt_offJSON = returnCleaned(t_offJSON, idx_ecgJSON)
-        pqrstJSONcl = [ecgp_pJSON, ecgq_pJSON, ecgr_pJSON, ecgs_pJSON, ecgt_pJSON, ecgp_onJSON, ecgt_offJSON]
-        
-        
-        # Add the ECGs centered on the R peaks instead
-        self.addECG_centerR(ecgML, pqrstMATcl, realR=r_pML)
-        self.printHRV(ecgML, pqrstMAT)
-        self.addECG_centerR(ecgJSON, pqrstJSONcl, realR=r_pJSON)
-        self.printHRV(ecgJSON, pqrstJSON)
-        
-        onsets = onsBPLeg
-        if legCut == False :
-            temp_Rp = r_pML[0]
-            while len(temp_Rp) > len(onsets[0]):
-                temp_Rp.pop()
-            onsets_rel = np.array(onsets[0]) - np.array(temp_Rp)
-        else :
-            temp_Rp = [x for x in r_pML[0] if x>timelim[0]*self.bpLeg._samplerate and x<timelim[1]*self.bpLeg._samplerate]
-            while len(temp_Rp) > len(onsets[0]):
-                temp_Rp.pop()
-            temp_Rp = np.array(temp_Rp) - int(timelim[0]*self.bpLeg._samplerate)
-            onsets_rel = np.array(onsets[0]) - np.array(temp_Rp)
-        onsBPLeg_rel = onsets_rel
-        
-        onsets = onsBPArm
-        temp_Rp = [x for x in r_pML[0] if x>timelim[0]*self.bpArm._samplerate and x<timelim[1]*self.bpArm._samplerate]
-        while len(temp_Rp) > len(onsets[0]):
-            temp_Rp.pop()
-        temp_Rp = np.array(temp_Rp) - int(timelim[0]*self.bpArm._samplerate)
-        onsets_rel = np.array(onsets[0]) - np.array(temp_Rp)
-        onsBPArm_rel = onsets_rel
+     
+               
+        self.addBP(self.bpLeg, mean_bpLeg, onsBPLeg[0])
+        self.addBP(self.bpArm, mean_bpArm, onsBPArm[0])
 
-        onsBPArmCl, _ = returnCleaned([onsBPArm_rel,onsBPArm_rel], idx_bpArm)
-        onsBPLegCl, _ = returnCleaned([onsBPLeg_rel,onsBPLeg_rel], idx_bpLeg)
-        
-        
-        self.addBP(self.bpLeg, mean_bpLeg, onsBPLegCl)
-        self.addBP(self.bpArm, mean_bpArm, onsBPArmCl)
-        
-
-        
-
-
-        
-        
         
         #%%
         listToDisplay = [allVectlin, allVectrot]
@@ -832,15 +748,15 @@ class DisplMeanWindow(QMainWindow):
     #%% Display of the MetaData and the approximative PWV
 
         
-        self.meanR_Leg = np.mean(onsBPLeg_rel)*self.bpLeg._step
-        self.stdR_Leg = np.std(onsBPLeg_rel*self.bpLeg._step)
-        self.lenR_Leg = len(onsBPLeg_rel)
+        self.meanR_Leg = np.mean(onsBPLeg[1])
+        self.stdR_Leg = np.std(onsBPLeg[1])
+        self.lenR_Leg = len(onsBPLeg[1])
         self.bpLeg_label.setText(" Mean R-bpLeg onset delay : "+str(np.round(self.meanR_Leg,3))+" ± "+str(np.round(self.stdR_Leg,3))+" s (N = "+str(self.lenR_Leg)+")")
         # Computation of the mean R-Leg and R-Arm
         
-        self.meanR_Arm = np.mean(onsBPArm_rel)*self.bpArm._step
-        self.stdR_Arm = np.std(onsBPArm_rel*self.bpArm._step)
-        self.lenR_Arm = len(onsBPArm_rel)
+        self.meanR_Arm = np.mean(onsBPArm[1])
+        self.stdR_Arm = np.std(onsBPArm[1])
+        self.lenR_Arm = len(onsBPArm[1])
         self.bpArm_label.setText(" Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" ± "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
         
         
@@ -862,8 +778,8 @@ class DisplMeanWindow(QMainWindow):
         self.aO_2dP_label.setText(text)
         
 
-        
-        self.showMaximized()
+        self.setMinimumSize(900, 800)
+        #self.showMaximized()
     
     #%% Useful functions
     
@@ -1007,10 +923,11 @@ class DisplMeanWindow(QMainWindow):
         
         
     
-    def addECG_centerR(self, ecg, pqrst, realR):
+    def addECG_centerR(self, ecg):
         
-        [p_p, q_p, r_p, s_p, t_p, p_on, t_off] = pqrst
-
+        [p_p, q_p, r_p, s_p, t_p, p_on, t_off] = detect_qrs(ecg, clean_technique = "ECG_NeuroKit", ecg_delineate = "peaks", show=False)
+        realR = r_p
+            
         # Compute the mean temporal difference between 2 R peaks
         rrTime = np.mean(np.diff(r_p[1]))
         halfRRtime = rrTime/2
@@ -1112,7 +1029,14 @@ class DisplMeanWindow(QMainWindow):
 
         print("After LOF ", len(meanECG), len(nextPon), len(nextP), len(nextQ), len(nextR), len(nextS), len(nextT), len(nextToff))
         
-
+        allpoints = [nextPon, nextP, nextQ, nextR, nextS, nextT, nextToff]
+        for i in range(len(allpoints)):
+            while len(allpoints[i])>len(meanECG):
+                allpoints[i] = np.delete(allpoints[i], -1)
+        [nextPon, nextP, nextQ, nextR, nextS, nextT, nextToff] = allpoints
+        
+        print("After LOF+resizing ", len(meanECG), len(nextPon), len(nextP), len(nextQ), len(nextR), len(nextS), len(nextT), len(nextToff))
+        
         x = np.arange(0, len(meanECG[0])*ecg._step, ecg._step)
         while len(x)>len(meanECG[0]):
             x = np.delete(x, -1)
@@ -1270,19 +1194,12 @@ class DisplMeanWindow(QMainWindow):
     def all_SameLen(self, vect):
         # Make sure all the graphs are the same length (max one)
         
-        #print("BEFORE :", len(vect), len(vect[0]))
-        
-        all_len = []
-        vect_copy = vect.copy()
-        for item in vect:
-            all_len.append(len(item))
-        max_len = int(np.max(all_len))
+        minLen = np.min([len(v) for v in vect])
 
-        for i in range(len(vect_copy)):
-            while len(vect_copy[i])<max_len:
-                vect_copy[i] = np.append(vect_copy[i], vect_copy[i][-1])
+        for i, item in enumerate(vect):
+            while len(vect[i]) > minLen :
+                vect[i] = np.delete(vect[i], -1)
 
-        return vect_copy
+        return vect
         #print("AFTER :", len(vect_copy), len(vect_copy[0]))
         
-

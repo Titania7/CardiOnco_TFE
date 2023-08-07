@@ -54,6 +54,7 @@ from openFiles import*
 from CustomPopups import *
 from toolbox import *
 from saveFiles import saveRaw
+import scipy.signal as sc
 
 import numpy as np
 import neurokit2 as nk
@@ -87,6 +88,8 @@ class MyWindow(QMainWindow):
     weight = 0
     height = 0
     pwv = None
+    
+    cardiOncoFile = False
     
     
 #%% Initialization of the main Window
@@ -150,9 +153,9 @@ class MyWindow(QMainWindow):
         # Set the central widget of the main window
         self.setCentralWidget(scroll_area)
         
-        #self.setMinimumSize(1000, 900)
+        self.setMinimumSize(900, 800)
         # Full screen mode
-        self.showMaximized()
+        #self.showMaximized()
         self.setWindowTitle("CardiOnco")
         self.setWindowIcon(QIcon("icon.png"))
 
@@ -200,21 +203,7 @@ class MyWindow(QMainWindow):
                     mat_pPeaks, mat_qPeaks, mat_rPeaks, mat_sPeaks, mat_tPeaks, mat_pOnsets, mat_tOffsets = detect_qrs(oneData, "ECG_NeuroKit", "peaks", show = False)
                     oneGraph.plot(oneData._x[mat_rPeaks[0]], oneData._y[mat_rPeaks[0]], pen=None, symbolSize = 5, symbol='o', symbolBrush='red', name="R peaks")
                 except :
-                    DialogPopup("Warning", "The quality of "+oneData._title+" is too bad to correctly detect the PQRST peaks.").exec()
-        if oneData._title == "BPleg": 
-            # Tangent method
-            try:
-                bpOnsets, bpY = getBpOnsets_tang(oneData, json_rPeaks, filt = True, show = False)
-                oneGraph.plot(bpOnsets[1], bpY, pen=None, symbolSize = 5, symbol='o', symbolBrush='red', name="Onsets (tangent method)")
-            except:
-                print("Unable to display the onsets of " + oneData._title + " on the whole graph (tangent method)")
-            # 2d deriv method
-            try:
-                bpOns_2dD = getBpOnsets_2dDeriv(oneData, json_rPeaks, filt = True, show = False)
-                oneGraph.plot(oneData._x[bpOns_2dD[0]], oneData._y[bpOns_2dD[0]], pen=None, symbolSize = 5, symbol='o', symbolBrush='green', name="Onsets (2d derivative method)")
-            except:
-                print("Unable to display the onsets of " + oneData._title + " on the whole graph (2d derivative method)")
-                        
+                    DialogPopup("Warning", "The quality of "+oneData._title+" is too bad to correctly detect the PQRST peaks.").exec()     
         self.layout.addWidget(oneGraph)
         infoVect_item[1] = [startCursor, stopCursor]
         
@@ -253,6 +242,7 @@ class MyWindow(QMainWindow):
         self.weight = 0
         self.height = 0
         self.pwv = None
+        
         self.clearGraphLayout()
         if not self.infosVector == []:
             for vect in [self.infosVector, self.infosVisible]:
@@ -346,9 +336,12 @@ class MyWindow(QMainWindow):
                 okJSONflag = True
             except:
                 DialogPopup("Error", "No JSON ECG found.").exec()
-
-            if okMATflag == True and okJSONflag == True:
-                #print(mat_pPeaks[0][0], mat_qPeaks[0][0], mat_rPeaks[0][0], mat_sPeaks[0][0], mat_tPeaks[0][0])
+            
+            if okMATflag == True and self.cardiOncoFile == True:
+                self.w = DisplMeanWindow(meta, pqrstJSON, pqrstMAT, self.infosVector, self.infosVisible, timelim=posCurs)
+                self.w.show()
+            
+            elif okMATflag == True and okJSONflag == True and self.cardiOncoFile == False:
                 self.w = DisplMeanWindow(meta, pqrstJSON, pqrstMAT, self.infosVector, self.infosVisible, timelim=posCurs)
                 self.w.show()
             elif okMATflag == True and okJSONflag == False:
@@ -403,20 +396,7 @@ class MyWindow(QMainWindow):
                     oneGraph.plot(oneData._x[mat_rPeaks[0]], oneData._y[mat_rPeaks[0]], pen=None, symbolSize = 5, symbol='o', symbolBrush='red', name="R peaks")
                 except :
                     DialogPopup("Warning", "The quality of "+oneData._title+" is too bad to correctly detect the PQRST peaks.").exec()
-        if oneData._title == "BPleg": 
-            # Tangent method
-            try:
-                bpOnsets, bpY = getBpOnsets_tang(oneData, json_rPeaks, filt = True, show = False)
-                oneGraph.plot(bpOnsets[1], bpY, pen=None, symbolSize = 5, symbol='o', symbolBrush='red', name="Onsets (tangent method)")
-            except:
-                print("Unable to display the onsets of " + oneData._title + " on the whole graph (tangent method)")
-            # 2d deriv method
-            try:
-                bpOns_2dD = getBpOnsets_2dDeriv(oneData, json_rPeaks, filt = True, show = False)
-                oneGraph.plot(oneData._x[bpOns_2dD[0]], oneData._y[bpOns_2dD[0]], pen=None, symbolSize = 5, symbol='o', symbolBrush='green', name="Onsets (2d derivative method)")
-            except:
-                print("Unable to display the onsets of " + oneData._title + " on the whole graph (2d derivative method)")
-        
+ 
         
         SCG = ["x_scgLin[m/s^2]", "y_scgLin[m/s^2]", "z_scgLin[m/s^2]", "x_scgRot[deg/s]", "y_scgRot[deg/s]", "z_scgRot[deg/s]"]
         """
@@ -521,7 +501,8 @@ class MyWindow(QMainWindow):
                         if oneData._title == "ECG":
                             oneData._title = oneData._title + " " + extension
                             
-                            corrECG, inverted = nk.ecg_invert(oneData._y, sampling_rate=oneData._samplerate, force=False, show=False)
+                            inverted = False
+                            #corrECG, inverted = nk.ecg_invert(oneData._y, sampling_rate=oneData._samplerate, force=False, show=False)
                             if inverted == True:
                                 print(oneData._title , "signal was inverted")
                                 oneData._y = corrECG
@@ -532,7 +513,8 @@ class MyWindow(QMainWindow):
                     for oneData in allData:
                         if oneData._title == "ECG json" or oneData._title == "ECG mat":
                             
-                            corrECG, inverted = nk.ecg_invert(oneData._y, sampling_rate=oneData._samplerate, force=False, show=False)
+                            inverted = False
+                            #corrECG, inverted = nk.ecg_invert(oneData._y, sampling_rate=oneData._samplerate, force=False, show=False)
                             if inverted == True:
                                 print(oneData._title , "signal was inverted")
                                 oneData._y = corrECG
@@ -556,28 +538,72 @@ class MyWindow(QMainWindow):
                 allDataJSON = []
                 allDataMLd = []
                 
+                wivine = False
+                if typeDatas[0][0] == typeDatas[1][0]: # MatLab and MatLab
+                    print("This is a Wivine combination")
+                    wivine = True
+                    
+                    print(typeDatas)
+                    if "meta" in list(typeDatas[0][1].keys()):
+                        typeDatas[0][0] = "JSON"
+                    elif "meta" in list(typeDatas[1][1].keys()):
+                        typeDatas[1][0] = "JSON"
+                    
+                    
+                    
+               
                 for typeD in typeDatas:
-                    if typeD[0] == 'MatLab':
-                        allDataMLd = getDataToDisplay(typeD[1], typeD[0])
-                    if typeD[0] == 'JSON':
-                        dataJSON = typeD[1]
-                        allDataJSON = getDataToDisplay(dataJSON, typeD[0])
-                        self.name = dataJSON["meta"]["nameFile"][0:19]
-                        self.sex = dataJSON["meta"]["Sex[m/f]"]
-                        self.age = dataJSON["meta"]["Age[y]"]
-                        self.weight = dataJSON["meta"]["Weight[kg]"]
-                        self.height = dataJSON["meta"]["Height[cm]"]
-                        
-                        self.txt_meta = QLabel("Identifier : "+self.name+" ; Sex : "+ self.sex+" ; Age : "+str(self.age)+" years ; Weight : "+ str(self.weight)+ " kg ; Height : "+ str(self.height)+" m")
-                        self.layout.addWidget(self.txt_meta)
-                        self.splitter.addWidget(self.txt_meta)
+                    if wivine == False :
+                        minHP = True
+                        if typeD[0] == 'MatLab':
+                            allDataMLd = getDataToDisplay(typeD[1], typeD[0])
+                                
+                        if typeD[0] == 'JSON':
+                            dataJSON = typeD[1]
+                            allDataJSON = getDataToDisplay(dataJSON, typeD[0])
+                            self.name = dataJSON["meta"]["nameFile"][0:19]
+                            self.sex = dataJSON["meta"]["Sex[m/f]"]
+                            self.age = dataJSON["meta"]["Age[y]"]
+                            self.weight = dataJSON["meta"]["Weight[kg]"]
+                            self.height = dataJSON["meta"]["Height[cm]"]
+                            
+                            self.txt_meta = QLabel("Identifier : "+self.name+" ; Sex : "+ self.sex+" ; Age : "+str(self.age)+" years ; Weight : "+ str(self.weight)+ " kg ; Height : "+ str(self.height)+" m")
+                            self.layout.addWidget(self.txt_meta)
+                            self.splitter.addWidget(self.txt_meta)
+                    else :
+                        minHP = False
+                        if typeD[0] == 'MatLab':
+                            allDataMLd = getDataToDisplay(typeD[1], 'MatLab')
+                            for i in range(len(allDataMLd)):
+                                fs_current = allDataMLd[i]._samplerate  # Hz
+                                fs_target = 200  # Hz
+                                num_samples_target = int(len(allDataMLd[i]._y) * fs_target / fs_current)
+                                allDataMLd[i]._y = sc.resample(allDataMLd[i]._y, num_samples_target)
+                                allDataMLd[i]._samplerate = fs_target
+                                allDataMLd[i]._step = 1/fs_target
+                                allDataMLd[i]._x = np.arange(0, len(allDataMLd[i]._y)*allDataMLd[i]._step, allDataMLd[i]._step)
+                        if typeD[0] == 'JSON':
+                            dataJSON = typeD[1]
+                            allDataJSON = getDataToDisplay(dataJSON, typeD[0])
+                            self.name = dataJSON["meta"]["nameFile"][0:19]
+                            self.sex = dataJSON["meta"]["Sex[m/f]"]
+                            self.age = dataJSON["meta"]["Age[y]"]
+                            self.weight = dataJSON["meta"]["Weight[kg]"]
+                            self.height = dataJSON["meta"]["Height[cm]"]
+                            
+                            self.txt_meta = QLabel("Identifier : "+self.name+" ; Sex : "+ self.sex+" ; Age : "+str(self.age)+" years ; Weight : "+ str(self.weight)+ " kg ; Height : "+ str(self.height)+" m")
+                            self.layout.addWidget(self.txt_meta)
+                            self.splitter.addWidget(self.txt_meta)
+                            
+                            
 
                 for graph in allDataJSON:
                     if graph._title == "ECG" :
                         ecg_JSON = graph
                         ecg_JSON._title = "ECG json"
                         ecg_JSON._y = ecg_JSON._y/max(abs(ecg_JSON._y))
-                        corrECG, inverted = nk.ecg_invert(ecg_JSON._y, sampling_rate=ecg_JSON._samplerate, force=False, show=False)
+                        inverted = False
+                        #corrECG, inverted = nk.ecg_invert(ecg_JSON._y, sampling_rate=ecg_JSON._samplerate, force=False, show=False)
                         if inverted == True:
                             print(ecg_JSON._title , "signal was inverted")
                             ecg_JSON._y = corrECG
@@ -587,7 +613,8 @@ class MyWindow(QMainWindow):
                     if graph._title == "ECG":
                         ecg_MLd = graph
                         ecg_MLd._title = "ECG mat"
-                        corrECG, inverted = nk.ecg_invert(ecg_MLd._y, sampling_rate=ecg_MLd._samplerate, force=False, show=False)
+                        inverted = False
+                        #corrECG, inverted = nk.ecg_invert(ecg_MLd._y, sampling_rate=ecg_MLd._samplerate, force=False, show=False)
                         if inverted == True:
                             print(ecg_JSON._title , "signal was inverted")
                             ecg_MLd._y = corrECG
@@ -597,9 +624,12 @@ class MyWindow(QMainWindow):
                     elif graph._title == "BPleg" :
                         # We filter the low frequency noise to get a "flat" signal
                         graph._y = butterHighPass(graph = graph, filtorder = 4, limfreq = 0.75, show=False)
+                    elif graph._title == "BPArm" :
+                        # We filter the low frequency noise to get a "flat" signal
+                        graph._y = butterHighPass(graph = graph, filtorder = 4, limfreq = 0.75, show=False)
                 
                 try :
-                    which, [start, stop] = getStartStopIndexes(ecg_JSON, ecg_MLd, show=True)
+                    which, [start, stop] = getStartStopIndexes(ecg_JSON, ecg_MLd, minHP, show=True)
                     # "which" is the longest recording to be trimmed
                 except : 
                     DialogPopup("Warning", "Synchronization seems impossible.\n The files might not be linked.").exec()
@@ -632,6 +662,7 @@ class MyWindow(QMainWindow):
                 try :
                     for oneData in allData :
                         for oneData in allData:
+                            #print(oneData)
                             if oneData._title == "x_scgLin[m/s^2]":
                                 xLin = oneData
                                 #allData.append(xLin)

@@ -14,6 +14,7 @@ from CustomPopups import *
 
 import numpy as np
 import scipy.io as sc
+import scipy
 
 import os, gc, sys, json, base64, math
 from PyQt6.QtWidgets import *
@@ -45,9 +46,102 @@ def openMatLabdigere(pathfile : str):
     # Load the file in memory
     mat = sc.loadmat(pathfile)
     
+    if "resL2" in list(mat.keys()):
+        print("Wivine type")
+        
+        allSCGData = mat["resL2"]
+
+        scg_fs = int(allSCGData["fs"])
+
+        ecg = np.array([])
+        for obj in allSCGData["ECG"]:
+            for element in obj[0]:
+                ecg = np.append(ecg, element)
+
+        x_lin = np.array([])
+        for obj in allSCGData["SCG_lin_Vsq_x"]:
+            for element in obj[0]:
+                x_lin = np.append(x_lin, element)
+         
+        y_lin = np.array([])
+        for obj in allSCGData["SCG_lin_Vsq_y"]:
+            for element in obj[0]:
+                y_lin = np.append(y_lin, element)
+
+        z_lin = np.array([]) 
+        for obj in allSCGData["SCG_lin_Vsq_z"]:
+            for element in obj[0]:
+                z_lin = np.append(z_lin, element)
+
+
+        x_rot = np.array([])
+        for obj in allSCGData["SCG_rot_Vsq_x"]:
+            for element in obj[0]:
+                x_rot = np.append(x_rot, element)
+         
+        y_rot = np.array([])
+        for obj in allSCGData["SCG_rot_Vsq_y"]:
+            for element in obj[0]:
+                y_rot = np.append(y_rot, element)
+
+        z_rot = np.array([])
+        for obj in allSCGData["SCG_rot_Vsq_z"]:
+            for element in obj[0]:
+                z_rot = np.append(z_rot, element)
+
+        
+        toret = {}
+        
+        meta = {}
+        meta["nameFile"] = ""
+        meta['Sex[m/f]'] = ""
+        meta['Weight[kg]'] = 0
+        meta['Height[cm]'] = 0
+        meta['Age[y]'] = 0
+
+        toret["meta"] =  meta
+        toret["_L2"] = True
+        
+        # Resample the values so that it looks more like the use cases
+        # ECG must be sampled at 200 Hz and SCG at about 100 Hz
+        fs_current = scg_fs  # Hz
+        fs_target = 200  # Hz
+        num_samples_target = int(len(ecg) * fs_target / fs_current)
+        ecg_200Hz = scipy.signal.resample(ecg, num_samples_target)
+        
+        ecgDict = {}
+        ecgDict['sfreq[Hz]'] = 200
+        ecgDict['numSamples'] = len(ecg_200Hz)
+        ecgDict['duration[s]'] = len(ecg_200Hz)/200
+        ecgDict['ECG[uV]'] = ecg_200Hz
+        ecgDict['ECGfactor'] = 1
+        toret['ECG'] = ecgDict
+        
+        fs_current = scg_fs  # Hz
+        fs_target = 100  # Hz
+        num_samples_target = int(len(x_lin) * fs_target / fs_current)
+        x_lin_100Hz = scipy.signal.resample(x_lin, num_samples_target)
+        x_rot_100Hz = scipy.signal.resample(x_rot, num_samples_target)
+        y_lin_100Hz = scipy.signal.resample(y_lin, num_samples_target)
+        y_rot_100Hz = scipy.signal.resample(y_rot, num_samples_target)
+        z_lin_100Hz = scipy.signal.resample(z_lin, num_samples_target)
+        z_rot_100Hz = scipy.signal.resample(z_rot, num_samples_target)
+        
+        scgDict = {}
+        scgDict['sfreq[Hz]'] = 100
+        scgDict['numSamples'] = len(x_lin_100Hz)
+        scgDict['duration[s]'] = len(x_lin_100Hz)/100
+        scgDict['scgLin[m/s^2]'] = {"x": x_lin_100Hz , "y": y_lin_100Hz, "z": z_lin_100Hz}
+        scgDict['scgRot[deg/s]'] = {"x": x_rot_100Hz , "y": y_rot_100Hz, "z": z_rot_100Hz}
+        toret['SCG'] = scgDict
+            
+        
+        data = toret
+        
+
+        
     
-    
-    if 'n' in list(mat.keys()):
+    elif 'n' in list(mat.keys()):
         print("Florine type")
         
         nbrMeasures = mat['n'][0][0] # int type => OK
@@ -74,7 +168,7 @@ def openMatLabdigere(pathfile : str):
             data["Measure "+str(i+1)] = temp
 
         #%% AJOUTER NOM DES TRACKS SPÉCIAL « MATLAB_FLO_tracks »
-        
+   
         
         
     elif 'data' in list(mat.keys()):
@@ -113,7 +207,7 @@ def openMatLabdigere(pathfile : str):
         #%% AJOUTER NOM DES TRACKS « MATLAB_tracks »
         
         
-        
+    print(data)
         
     # Returns dictionary with data, min-max values and sampling frequency for each channel (here 8)
     return data
@@ -744,32 +838,52 @@ def getDataToDisplay(dataDict : dict, typeData : str):
     
     # MATLAB/LABCHART :
     if typeData == "MatLab":
-        
+        print(list(dataDict.keys()))
         if "ECG" in list(dataDict.keys()):
-            for title in list(dataDict.keys()):
-                y = dataDict[title]['signal']
-                step = 1/dataDict[title]['samplerate']
+            if "BParm" in list(dataDict.keys()) and "BPplus" in list(dataDict.keys()):
+                dataDict["BParm"] = dataDict["BPplus"]
             
-                x = commonPart(y, step)
+            if not "_L2" in list(dataDict.keys()):
+                for title in list(dataDict.keys()):
+                    
+                    if not title == "Doppler" and not title == "BPplus":
+                        y = dataDict[title]['signal']
+                        step = 1/dataDict[title]['samplerate']
+                    
+                        x = commonPart(y, step)
+                        
+                        
+                        graphMLd = SingleGraph(x, y, title, dataDict[title]['samplerate'], step)
+                        allData.append(graphMLd)
+            else :
+                # First the ECG signal
+                try:
+                    y = np.array(dataDict['ECG']['ECG[uV]'])*dataDict['ECG']['ECGfactor']
+                    sfreq = dataDict['ECG']['sfreq[Hz]']
+                    step = 1/sfreq
+                    x = commonPart(y, step)
+                    
+                    graphJSON = SingleGraph(x, y, "ECG", sfreq, step)
+                    allData.append(graphJSON)
+                except:
+                    DialogPopup("Error", "No ECG found").exec()
+
                 
+                # Then the SCG signal
+                sfreq = dataDict['SCG']['sfreq[Hz]']
+                step = 1/sfreq
                 
-                """
-                if title == "ECG":
-                    print("Moyenne = ", np.mean(y))
-                    print("Minimum = ", np.min(y))
-                    print("Maximum = ", np.max(y))
-                    print("Différence max-moy = ", np.max(y)-np.mean(y))
-                    print("Différence moy-min = ", np.mean(y)-np.min(y))
-                    if abs(np.max(y)-np.mean(y)) > abs(np.mean(y)-np.min(y)):
-                        print("ECG non inversé", type(y))
-                    else : 
-                        print("ECG inversé")
-                """
+                interestKeys = ['scgLin[m/s^2]', 'scgRot[deg/s]']
                 
-                
-                graphMLd = SingleGraph(x, y, title, dataDict[title]['samplerate'], step)
-                allData.append(graphMLd)
-        else:        
+                axes = ['x', 'y', 'z']
+                for key in interestKeys:
+                    for ax in axes :
+                        y = np.array(dataDict['SCG'][key][ax])
+                        x = commonPart(y, step)
+                        
+                        graphJSON = SingleGraph(x, y, ax+'_'+key, sfreq, step)
+                        allData.append(graphJSON)
+        else:
             for measure in list(dataDict.keys()):
                 for title in list(dataDict[measure].keys()):
                     
