@@ -209,6 +209,20 @@ class MyWindow(QMainWindow):
         
         self.splitter.addWidget(oneGraph)
         
+        if oneData._title == "ECG json":
+            invertJSON = QPushButton('Invert ECG json', self)
+            invertJSON.clicked.connect(self.invertECGjson)
+            invertJSON.setGeometry(50, 50, 200, 30)
+            self.layout.addWidget(invertJSON)
+            self.splitter.addWidget(invertJSON)
+        
+        if oneData._title == "ECG mat":
+            invertMAT = QPushButton('Invert ECG mat', self)
+            invertMAT.clicked.connect(self.invertECGmat)
+            invertMAT.setGeometry(50, 50, 200, 30)
+            self.layout.addWidget(invertMAT)
+            self.splitter.addWidget(invertMAT)
+        
 
     def clearGraphLayout(self):
         for i in reversed(range(self.splitter.count())):
@@ -229,8 +243,17 @@ class MyWindow(QMainWindow):
                 self.addExistingGraph(self.infosVector[i])
         self.synchroCursors()
                 
-
+    def invertECGjson(self):
+        for i in range(len(self.infosVector)):
+            if self.infosVector[i][0]._title == "ECG json":
+                self.infosVector[i][0]._y, _ = nk.ecg_invert(self.infosVector[i][0]._y, sampling_rate=self.infosVector[i][0]._samplerate, force=True, show=False)
+        self.refreshGraphs()
         
+    def invertECGmat(self):
+        for i in range(len(self.infosVector)):
+            if self.infosVector[i][0]._title == "ECG mat":
+                self.infosVector[i][0]._y, _ = nk.ecg_invert(self.infosVector[i][0]._y, sampling_rate=self.infosVector[i][0]._samplerate, force=True, show=False)
+        self.refreshGraphs()
 
 #%% Options Menu
     
@@ -329,7 +352,7 @@ class MyWindow(QMainWindow):
                 pqrstMAT = [mat_pPeaks, mat_qPeaks, mat_rPeaks, mat_sPeaks, mat_tPeaks, mat_pOnsets, mat_tOffsets]
                 okMATflag = True
             except:
-                DialogPopup("Error", "No No MatLab ECG found.").exec()
+                DialogPopup("Error", "No MatLab ECG found.").exec()
             try:
                 meta = [self.name, self.sex, self.age, self.weight, self.height]
                 pqrstJSON = [json_pPeaks, json_qPeaks, json_rPeaks, json_sPeaks, json_tPeaks, json_pOnsets, json_tOffsets]
@@ -416,8 +439,20 @@ class MyWindow(QMainWindow):
         
         
         self.layout.addWidget(oneGraph)
-        
         self.splitter.addWidget(oneGraph)
+        if oneData._title == "ECG json":
+            invertJSON = QPushButton('Invert ECG json', self)
+            invertJSON.clicked.connect(self.invertECGjson)
+            invertJSON.setGeometry(50, 50, 200, 30)
+            self.layout.addWidget(invertJSON)
+            self.splitter.addWidget(invertJSON)
+        
+        if oneData._title == "ECG mat":
+            invertMAT = QPushButton('Invert ECG mat', self)
+            invertMAT.clicked.connect(self.invertECGmat)
+            invertMAT.setGeometry(50, 50, 200, 30)
+            self.layout.addWidget(invertMAT)
+            self.splitter.addWidget(invertMAT)
         
         
         # Note that this information is visible
