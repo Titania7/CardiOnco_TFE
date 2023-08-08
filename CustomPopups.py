@@ -48,14 +48,6 @@ class DialogPopup(QDialog):
 
 class OptionPopup(QDialog):
     
-    """
-    Valuable variables :
-    - freq (sampling frequency) => f
-    - offset (temporal offset) => b
-    - scale (multiplier value) => a
-    
-    final_y = [ay+b]
-    """
     # Connect the metadata to the first window
     newName = pyqtSignal(str)
     newSex = pyqtSignal(str)
@@ -211,7 +203,100 @@ class DisplDataPopup(QDialog):
 
 
 
+class PWVhypothesis(QDialog):
+    
+    distLeg = "?"
+    distArm = "?"
+    timeR_Leg = None
+    timeR_Arm = None
+    timeR_Ao4090 = None
+    timeR_Ao2dP = None
+    
+    
+    def __init__(self, timeR_Leg, timeR_Arm, timeR_Ao4090, timeR_Ao2dP):
+        super().__init__()
 
+
+
+        self.timeR_Leg = timeR_Leg
+        self.timeR_Arm = timeR_Arm
+        self.timeR_Ao4090 = timeR_Ao4090
+        self.timeR_Ao2dP = timeR_Ao2dP
+
+
+        self.setWindowTitle("PWV hypothesis computation")
+        
+        # Begin of stacked widgets
+        self.layout = QVBoxLayout()
+        
+        
+        # Beginning of side-by-side widgets
+        
+        #%% Number 1 : Leg distance
+        
+        self.legdistLabel = QHBoxLayout()
+        legdisttxt = QLabel("Leg distance :")
+        self.legdistLabel.addWidget(legdisttxt)
+        self.legdistEdit = QLineEdit()
+        self.legdistEdit.setText("?")
+        self.legdistEdit.textChanged.connect(self.legdistEdit.setText)
+        self.legdistEdit.textChanged.connect(self.updateDistleg)
+        self.legdistLabel.addWidget(self.legdistEdit)
+        self.layout.addLayout(self.legdistLabel)
+        
+        #%% Number 2 : Arm distance
+        
+        self.armdistLabel = QHBoxLayout()
+        armdisttxt = QLabel("Arm distance :")
+        self.armdistLabel.addWidget(armdisttxt)
+        self.armdistEdit = QLineEdit()
+        self.armdistEdit.setText("?")
+        self.armdistEdit.textChanged.connect(self.armdistEdit.setText)
+        self.armdistEdit.textChanged.connect(self.updateDistarm)
+        self.armdistLabel.addWidget(self.armdistEdit)
+        self.layout.addLayout(self.armdistLabel)
+        
+        
+        #%% Number 3 : Leg and arm delays
+        
+        self.delaysLabel = QHBoxLayout()
+        delaystxt = QLabel("Leg delay = " + str(np.round(timeR_Leg,3)) + " s")
+        self.delaysLabel.addWidget(delaystxt)
+        delaystxt = QLabel("Arm delay = "+ str(np.round(timeR_Arm,3))+" s")
+        self.delaysLabel.addWidget(delaystxt)
+        self.layout.addLayout(self.delaysLabel)
+
+        
+        #%% Number 4 : Print approximation for both calculated AO
+        
+        computePWV = QPushButton('Compute PWV', self)
+        computePWV.clicked.connect(self.updatepwvHyp)
+        computePWV.setGeometry(50, 50, 200, 30)
+        self.layout.addWidget(computePWV)
+        
+        
+        self.pwvHyp = QLabel("Hypothesis PWV = ? m/s")
+        self.layout.addWidget(self.pwvHyp)
+
+            
+        self.setLayout(self.layout)
+
+    def updateDistarm(self):
+        if not self.armdistEdit == "?" or not self.armdistEdit == "" :
+            self.distArm = float(self.armdistEdit.text())
+        return
+    
+    def updateDistleg(self):
+        if not self.legdistEdit == "?" or not self.legdistEdit == "" :
+            self.distLeg = float(self.legdistEdit.text())
+    
+    def updatepwvHyp(self):
+        print(self.distLeg, self.distArm, self.timeR_Leg, self.timeR_Arm)
+        if not self.distLeg == "?" and not self.distArm == "?":
+            pwvHypothese = self.distArm / (self.timeR_Arm - (self.distArm*self.timeR_Leg - self.distLeg*self.timeR_Arm)/(self.distArm - self.distLeg))
+            self.pwvHyp.setText("Hypothesis PWV = " + str(np.round(pwvHypothese, 3)) + " m/s")
+        
+        return
     
 #%% Secondary window (mean graphs)
 
@@ -223,6 +308,8 @@ class DisplMeanWindow(QMainWindow):
     ecgJSON = None
     linSCG = None
     rotSCG = None
+    
+    bpAo = None
     
     allecgML = None
     allbpLeg = None
@@ -264,6 +351,11 @@ class DisplMeanWindow(QMainWindow):
         save_button = QAction("Save View", self)
         toolbar.addAction(save_button)
         save_button.triggered.connect(self.saveMeanView)
+        
+        pwvHyp_button = QAction("Hypothesis PWV", self)
+        toolbar.addAction(pwvHyp_button)
+        pwvHyp_button.triggered.connect(self.popupPWVhypothesis)
+                                
         
         # Create a scroll bar
         self.scroll_area = QScrollArea()
@@ -326,6 +418,9 @@ class DisplMeanWindow(QMainWindow):
                     ecgML = infoVect[i][0]
                 elif infoVect[i][0]._title == "ECG json":
                     ecgJSON = infoVect[i][0]
+                elif infoVect[i][0]._title == "BPAo":
+                    self.bpAo = infoVect[i][0]
+                     
                 elif infoVect[i][0]._title == "BPleg":
                     bpLeg = infoVect[i][0]
                     bpLeg._y = butterCutPass(bpLeg, 4, [1,bpLeg._samplerate/2-10])
@@ -409,6 +504,8 @@ class DisplMeanWindow(QMainWindow):
         mean_ecgML = []
         mean_bpLeg = []
         mean_bpArm = []
+        if not self.bpAo == None :
+            mean_bpAo = []
         
         authorizedList = []
         
@@ -425,15 +522,26 @@ class DisplMeanWindow(QMainWindow):
             if r_pML[0][i+1] < len(bpLeg._x):
                 y_bpLeg = bpLeg._y[r_pML[0][i]:r_pML[0][i+1]]
                 mean_bpLeg.append(y_bpLeg)
+            
+            if not self.bpAo == None :
+                y_bpAo = self.bpAo._y[r_pML[0][i]:r_pML[0][i+1]]
+                mean_bpAo.append(y_bpAo)
+            
             if r_pML[0][i]-startindex> 0 and r_pML[0][i+1]-startindex < len(self.bpArm._x):
                 #print("I'm in !")
                 y_bpArm = self.bpArm._y[r_pML[0][i]-startindex:r_pML[0][i+1]-startindex]
                 mean_bpArm.append(y_bpArm)
+            
         
         minsize = np.min([len(vect) for vect in mean_bpArm])
         for i, vect in enumerate(mean_bpArm):
             while len(mean_bpArm[i])>minsize:
                 mean_bpArm[i] = np.delete(mean_bpArm[i],-1)
+                
+        if not self.bpAo == None :
+            for i, vect in enumerate(mean_bpAo):
+                while len(mean_bpAo[i])>minsize:
+                    mean_bpAo[i] = np.delete(mean_bpAo[i],-1)
                 
         minsize  = np.min([len(vect) for vect in mean_bpLeg])
         for i, vect in enumerate(mean_bpLeg):
@@ -545,6 +653,11 @@ class DisplMeanWindow(QMainWindow):
         try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.1)
         except: print("Rejection of outliers graphs for bpArm unsuccessful")
         
+        if not self.bpAo == None :
+            try: mean_bpAo, idx_bpAo = cleanLOF(mean_bpAo, 5, 0.4)
+            except: print("Rejection of outliers graphs for bpAo unsuccessful")
+        
+        
         self.addECG_centerR(ecgJSON)
         self.printHRV(ecgJSON, pqrstJSON)
       
@@ -586,7 +699,8 @@ class DisplMeanWindow(QMainWindow):
         
         onsBPLeg = getBpOnsets_tang(mean_bpLeg, bpLeg._samplerate, bpLeg._title, filt = True, show = False)
         onsBPArm = getBpOnsets_tang(mean_bpArm, self.bpArm._samplerate, self.bpArm._title, filt = True, show = False)
-        
+        if not self.bpAo == None :
+            onsBPAo = getBpOnsets_tang(mean_bpAo, self.bpAo._samplerate, self.bpAo._title, filt = True, show = False)
         
         #%% Definition of colors for the graphs
         
@@ -606,7 +720,8 @@ class DisplMeanWindow(QMainWindow):
                
         self.addBP(self.bpLeg, mean_bpLeg, onsBPLeg[0])
         self.addBP(self.bpArm, mean_bpArm, onsBPArm[0])
-
+        if not self.bpAo == None :
+            self.addBP(self.bpAo, mean_bpAo, onsBPAo[0])
         
         #%%
         listToDisplay = [allVectlin, allVectrot]
@@ -746,7 +861,6 @@ class DisplMeanWindow(QMainWindow):
             
         
     #%% Display of the MetaData and the approximative PWV
-
         
         self.meanR_Leg = np.mean(onsBPLeg[1])
         self.stdR_Leg = np.std(onsBPLeg[1])
@@ -759,6 +873,12 @@ class DisplMeanWindow(QMainWindow):
         self.lenR_Arm = len(onsBPArm[1])
         self.bpArm_label.setText(" Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" ± "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
         
+        if not self.bpAo == None :
+            self.meanR_Ao = np.mean(onsBPAo[1])
+            self.stdR_Ao = np.std(onsBPAo[1])
+            self.lenR_Ao = len(onsBPAo[1])
+            self.bpAo_label.setText(" Mean R-bpAo onset delay : "+str(np.round(self.meanR_Ao,3))+" ± "+str(np.round(self.stdR_Ao,3))+" s (N = "+str(self.lenR_Ao)+")")
+            
         
         # Computation of the mean R-AO for each technique
         self.meanR_AO_4090 = np.mean(relAO_4090)*linSCG._step
@@ -777,6 +897,9 @@ class DisplMeanWindow(QMainWindow):
         text +=  "     => afPWV = "+ str(np.round(self.pwv_2dP ,3))+" m/s"
         self.aO_2dP_label.setText(text)
         
+        #%%
+        
+
 
         self.setMinimumSize(900, 800)
         #self.showMaximized()
@@ -809,7 +932,16 @@ class DisplMeanWindow(QMainWindow):
         return cursor
         
         
-    
+    def popupPWVhypothesis(self):
+
+        timeR_Leg = self.meanR_Leg
+        timeR_Arm = self.meanR_Arm
+        timeR_Ao4090 = self.meanR_AO_4090
+        timeR_Ao2dP = self.meanR_AO_2dP
+        
+        PWVhypothesis(self.meanR_Leg, self.meanR_Arm, self.meanR_AO_4090, self.meanR_AO_2dP).exec()
+        
+        return
     
     def saveMeanView(self):
         
@@ -916,9 +1048,12 @@ class DisplMeanWindow(QMainWindow):
         if bpSC._title == "BPleg":
             self.bpLeg_label = QLabel("")
             self.layout.addWidget(self.bpLeg_label)
-        else :
+        elif bpSC._title == "BParm":
             self.bpArm_label = QLabel("")
             self.layout.addWidget(self.bpArm_label)
+        elif bpSC._title == "BPAo":
+            self.bpAo_label = QLabel("")
+            self.layout.addWidget(self.bpAo_label)
         
         
         

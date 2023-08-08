@@ -13,11 +13,14 @@ from sklearn.neighbors import LocalOutlierFactor
 import neurokit2 as nk
 import pandas as pd
 import math
+import pywt
+from scipy.signal import hilbert
 
 import matplotlib.pyplot as plt
 
 import numpy as np
 from numpy.fft import *
+
 
 from scipy import signal
 import scipy.signal as sc
@@ -231,26 +234,14 @@ def butterCutPass(graph : SingleGraph, filtorder : int, limfreqs : list, show=Fa
     print("Max freq of cleaned Fourier  = ", np.argmax(y_cleaned_fourier)*graph._step)
     """
     
-
-    
     # Visualization of the cleaned signal    
     if show == True :
-        fig, axis = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-        axis[0].set_title("Corresponding ECG")
-        axis[0].plot(ecg._x, ecg._y)
-        axis[0].grid()
-        
-        axis[1].set_title("Cleaning of "+graph._title)
-        axis[1].plot(graph._x, graph._y, 'grey', alpha = 0.5, label = "Raw signal")
-        axis[1].plot(graph._x, y, label = "Cleaned signal")
-        axis[1].legend(loc='best')
-        axis[1].grid()
-        
-        for r_time in r_p[1]:
-            axis[0].axvline(x=r_time, color='red', linestyle='--')
-            axis[1].axvline(x=r_time, color='red', linestyle='--')
-        
-        axis[0].set_xlim([r_p[1][0]-0.05, r_p[1][5]+0.05])
+        plt.figure(figsize=(10, 6))
+        plt.title("Cleaning of "+graph._title)
+        plt.plot(graph._x, graph._y, 'grey', alpha = 0.5, label = "Raw signal")
+        plt.plot(graph._x, y, label = "Cleaned signal")
+        plt.legend(loc='best')
+        plt.grid()
         plt.show()
 
     return y
@@ -274,22 +265,12 @@ def butterLowPass(graph : SingleGraph, filtorder : int, limfreq : float, show=Fa
     
     # Visualization of the cleaned signal    
     if show == True :
-        fig, axis = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-        axis[0].set_title("Corresponding ECG")
-        axis[0].plot(ecg._x, ecg._y)
-        axis[0].grid()
-        
-        axis[1].set_title("Cleaning of "+graph._title)
-        axis[1].plot(graph._x, graph._y, 'grey', alpha = 0.5, label = "Raw signal")
-        axis[1].plot(graph._x, y, label = "Cleaned signal")
-        axis[1].legend(loc='best')
-        axis[1].grid()
-        
-        for r_time in r_p[1]:
-            axis[0].axvline(x=r_time, color='red', linestyle='--')
-            axis[1].axvline(x=r_time, color='red', linestyle='--')
-        
-        axis[0].set_xlim([r_p[1][0]-0.05, r_p[1][5]+0.05])
+        plt.figure(figsize=(10, 6))
+        plt.title("Cleaning of "+graph._title)
+        plt.plot(graph._x, graph._y, 'grey', alpha = 0.5, label = "Raw signal")
+        plt.plot(graph._x, y, label = "Cleaned signal")
+        plt.legend(loc='best')
+        plt.grid()
         plt.show()
 
     return y
@@ -313,22 +294,12 @@ def butterHighPass(graph : SingleGraph, filtorder : int, limfreq : float, show=F
     
     # Visualization of the cleaned signal    
     if show == True :
-        fig, axis = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-        axis[0].set_title("Corresponding ECG")
-        axis[0].plot(ecg._x, ecg._y)
-        axis[0].grid()
-        
-        axis[1].set_title("Cleaning of "+graph._title)
-        axis[1].plot(graph._x, graph._y, 'grey', alpha = 0.5, label = "Raw signal")
-        axis[1].plot(graph._x, y, label = "Cleaned signal")
-        axis[1].legend(loc='best')
-        axis[1].grid()
-        
-        for r_time in r_p[1]:
-            axis[0].axvline(x=r_time, color='red', linestyle='--')
-            axis[1].axvline(x=r_time, color='red', linestyle='--')
-        
-        axis[0].set_xlim([r_p[1][0]-0.05, r_p[1][5]+0.05])
+        plt.figure(figsize=(10, 6))
+        plt.title("Cleaning of "+graph._title)
+        plt.plot(graph._x, graph._y, 'grey', alpha = 0.5, label = "Raw signal")
+        plt.plot(graph._x, y, label = "Cleaned signal")
+        plt.legend(loc='best')
+        plt.grid()
         plt.show()
 
     return y
@@ -698,8 +669,207 @@ def getBpOnsets_2dDeriv(bp, rPeaks, lims =[], show = False):
     
     return [bpOnsetsindex, bpOnsetstime]
 
-#%% Retrieval of the AO point techniques
+#%% AO points detection from articles
 
+def jafaritadi2015(cleanAllLinGraphs, fs, show = False):
+    """
+    cleanAllLinGraphs must be a list of arrays fron allLinSCG. 
+    Each array is a SCG graph between a R-R interval.
+    All the arrays must be the same length.
+    Works better if the SCG signal has been cleaned before.
+    """
+    
+    step = 1/fs
+    
+    time = np.arange(0, len(cleanAllLinGraphs[0])*step, step)
+    while len(time)>len(cleanAllLinGraphs[0]):
+        time = np.delete(time, -1)
+
+    ao_90rel = np.array([])
+    for vect in cleanAllLinGraphs:
+        
+        # Cut the frequencies between 4-40 Hz
+        graph = SingleGraph(time, vect, title = "", samplerate=fs, step=step)
+        vect = butterCutPass(graph, filtorder=3, limfreqs=[4,40], show = False)
+        
+        # Search each max peak in the R-90 ms interval (assumed to be AO)
+        maxSearch = 0.09 #90 ms
+        local_maxima = np.array(sc.argrelextrema(vect[:int(np.round(maxSearch*fs))], np.greater_equal, order = 2))
+        local_maxima = local_maxima.reshape([local_maxima.shape[1],])
+        # Select the last peak detected as AO
+        ao = local_maxima[-1]
+        
+        if show == True :
+            plt.plot(time, vect)
+            plt.plot(time[ao], vect[ao], "o", color = "orange", label="AO (method R-90 ms)")
+            plt.axvspan(0.0,0.090, alpha=0.3, color='orange', label="Search zone R-90 ms")
+            plt.legend(loc = "best")
+            plt.show()
+        
+        
+        ao_90rel = np.append(ao_90rel, ao)
+
+    ao_90rel = ao_90rel.astype(int)
+    return ao_90rel
+    
+
+def khosrow_khavar2015(cleanAllLinGraphs, fs, show = False):
+    step = 1/fs
+    
+    time = np.arange(0, len(cleanAllLinGraphs[0])*step, step)
+    while len(time)>len(cleanAllLinGraphs[0]):
+        time = np.delete(time, -1)
+
+    ao_HFenvelope = np.array([])
+    for vect in cleanAllLinGraphs:
+        # Cut the frequencies between 4-40 Hz
+        graph = SingleGraph(time, vect, title = "", samplerate=fs, step=step)
+        vectLF = butterLowPass(graph, filtorder=5, limfreq=30, show = False)
+        vectHF = butterHighPass(graph, filtorder=5, limfreq=20, show = False)
+    
+        envHF = np.abs(hilbert(vectHF))
+        
+        maxSearch = 0.2 #s
+        peak_env = np.argmax(envHF[:int(np.round(maxSearch*fs))])
+        
+        windowSearch = int(np.round(0.025*fs)) #ms
+        ao = np.argmax(vect[peak_env-windowSearch:peak_env+windowSearch])
+        ao = ao+peak_env-windowSearch
+        
+        
+        if show == True :
+            plt.plot(time, vect, label = "Raw ACC")
+            plt.plot(time[ao], vect[ao],'o', color = "blue", label = "AO")
+            #plt.plot(time, vectLF, label = "LFACC")
+            plt.plot(time, vectHF, label = "HFACC")
+            plt.plot(time, envHF, color = "red", label = "HFENV")
+            plt.plot(time[peak_env], envHF[peak_env], 'o', color = "red", label = "HFACC peak")
+            plt.axvspan(0.0,0.2, alpha=0.3, color='yellow', label="Search zone HFACC peak")
+            plt.axvspan(time[peak_env] - 0.025, time[peak_env]+0.025, alpha=0.5, color='lightblue', label="Where is AO")
+            plt.legend(loc = "best")
+            plt.show()
+        
+        ao_HFenvelope = np.append(ao_HFenvelope, ao)
+    ao_HFenvelope = ao_HFenvelope.astype(int)
+    return ao_HFenvelope
+
+def yang2017(cleanXrot, cleanYrot, cleanZrot, zLin, fs, show = False):
+    
+    step = 1/fs
+    
+    # make them all the same length
+    minsize = np.min([len(vectCollection) for vectCollection in [cleanXrot, cleanYrot, cleanZrot]])
+    for vectCollection in [cleanXrot, cleanYrot, cleanZrot]:
+        while len(vectCollection)>minsize:
+            vectCollection.pop()
+    
+    
+    time = np.arange(0, len(cleanXrot[0])*step, step)
+    while len(time)>len(cleanXrot[0]):
+        time = np.delete(time, -1)
+    
+    ao_DSProtation = np.array([])
+    i_x = 11.5
+    i_y = 21.4
+    i_z = 1
+    
+    for i in range(len(cleanXrot)):
+        
+        graphX = SingleGraph(time, cleanXrot[i], title = "", samplerate=fs, step=step)
+        vectX = butterCutPass(graphX, filtorder=3, limfreqs=[0.8,25], show = False)
+        graphY = SingleGraph(time, cleanYrot[i], title = "", samplerate=fs, step=step)
+        vectY = butterCutPass(graphY, filtorder=3, limfreqs=[0.8,25], show = False)
+        graphZ = SingleGraph(time, cleanZrot[i], title = "", samplerate=fs, step=step)
+        vectZ = butterCutPass(graphZ, filtorder=3, limfreqs=[0.8,25], show = False)
+
+        kinEnergy = 0.5*(i_x*vectX**2 + i_y*vectY**2 + i_z*vectZ**2)   
+        kE_peak = np.argmax(kinEnergy[:int(np.round(0.11*fs))])
+        
+        searchWin = 0.025 #s
+        ao_DSProt = np.argmax(zLin[i][kE_peak-int(np.round(searchWin*fs)):kE_peak+int(np.round(searchWin*fs))])
+        ao = ao_DSProt + kE_peak-int(np.round(searchWin*fs))
+        
+        if show == True:
+            plt.plot(time, 0.5*i_x*vectX**2, label = "x component")
+            plt.plot(time, 0.5*i_y*vectY**2, label="y component")
+            plt.plot(time, 0.5*i_z*vectZ**2, label="z component");
+            plt.plot(time, kinEnergy, label="kinetic energy")
+            #plt.axvspan(kinEnergy*step-searchWin, kinEnergy*step+searchWin, alpha=0.3, color='orange', label="Search zone AO peak")
+            plt.legend(loc = "best")
+            plt.show()
+            
+            plt.plot(time, zLin[i])
+            plt.plot(time[ao], zLin[i][ao], "o", color = "red")
+            #plt.axvspan(kinEnergy*step-searchWin, kinEnergy*step+searchWin, alpha=0.3, color='orange', label="Search zone AO peak")
+            plt.show()
+        
+        ao_DSProtation = np.append(ao_DSProtation, ao)
+        
+    ao_DSProtation = ao_DSProtation.astype(int)
+    return ao_DSProtation
+
+def siecinski2020(cleanYrot, fs, show = False):
+    
+    step = 1/fs
+    time = np.arange(0, len(cleanYrot[0])*step, step)
+    while len(time)>len(cleanYrot[0]):
+        time = np.delete(time, -1)
+    
+    ao_peak_GCGy = np.array([])
+    for vect in cleanYrot:
+        
+        graph = SingleGraph(time, vect, title = "", samplerate=fs, step=step)
+        vect = butterCutPass(graph, filtorder=3, limfreqs=[4,40], show = False)
+        
+        searchZone = 0.1 #s
+        ao = np.argmax(vect[:int(np.round(searchZone*fs))])
+        
+        if show == True:
+            plt.plot(time, vect)
+            plt.plot(time[ao], vect[ao], "o")
+            plt.show()
+        
+        
+        ao_peak_GCGy = np.append(ao_peak_GCGy, ao)
+        
+    ao_peak_GCGy = ao_peak_GCGy.astype(int)
+    return ao_peak_GCGy
+
+def riveropouymiro2016(cleanAllLinGraphs, fs, show = False):
+    
+    step = 1/fs
+    
+    time = np.arange(0, len(cleanAllLinGraphs[0])*step, step)
+    while len(time)>len(cleanAllLinGraphs[0]):
+        time = np.delete(time, -1)
+
+    ao_Db4 = np.array([])
+    for vect in cleanAllLinGraphs:
+        # Cut the frequencies between 4-40 Hz
+        graph = SingleGraph(time, vect, title = "", samplerate=fs, step=step)
+        vect = butterLowPass(graph, filtorder=3, limfreq=30, show = False)
+        
+        wavelet = 'db4'  # Ondelette de Daubechies 4
+        scales = np.arange(25,600,25)  # Échelles à utiliser
+
+        # Calcul de la CWT
+        [coeffs, freqs] = pywt.dwt(vect, 'db4')
+        
+        # Analyse des coefficients
+        plt.figure(figsize=(10, 6))
+        
+        # Afficher les coefficients CWT
+        plt.imshow([np.abs(coeffs),np.abs(freqs)], extent=[time[0], time[-1], scales[0], scales[-1]], cmap='viridis', aspect='auto')
+        plt.colorbar(label='Amplitude')
+        plt.xlabel('Temps (s)')
+        plt.ylabel('Échelle')
+        plt.title('CWT du signal avec l\'ondelette de Daubechies 4')
+
+        plt.show()
+        
+
+    
+#%% Retrieval of the AO point techniques
 def getAO_4090ms(cleanTrimGraphs, fs, show = False):
     """
     cleanTrimGraphs must be a list of arrays. 
@@ -709,6 +879,8 @@ def getAO_4090ms(cleanTrimGraphs, fs, show = False):
     """
     step = 1/fs
     time = np.arange(0, len(cleanTrimGraphs[0])*step, step)
+    while len(time)>len(cleanTrimGraphs[0]):
+        time = np.delete(time, -1)
 
     ao40_90rel = np.array([])
     for vect in cleanTrimGraphs:
@@ -732,6 +904,7 @@ def getAO_4090ms(cleanTrimGraphs, fs, show = False):
     ao40_90rel = ao40_90rel.astype(int)
     return ao40_90rel
 
+
 def getAO_2pAfter40ms(cleanTrimGraphs, fs, show = False):
     """
     cleanTrimGraphs must be a list of arrays. 
@@ -741,6 +914,8 @@ def getAO_2pAfter40ms(cleanTrimGraphs, fs, show = False):
     """
     step = 1/fs
     time = np.arange(0, len(cleanTrimGraphs[0])*step, step)
+    while len(time)>len(cleanTrimGraphs[0]):
+        time = np.delete(time, -1)
 
     aoLocMax_rel = np.array([])
     for vect in cleanTrimGraphs:
@@ -749,7 +924,8 @@ def getAO_2pAfter40ms(cleanTrimGraphs, fs, show = False):
         indMin = int(np.round(minSearch*fs))
 
         # Mise en place de la recherche du 2e pic temporel
-        local_maxima = np.array(sc.argrelextrema(vect[int(np.round(minSearch*fs)):], np.greater_equal, order = 2))
+        local_maxima = np.array(sc.argrelextrema(vect[int(np.round(minSearch*fs)):], np.greater_equal, order = 5))
+        #local_maxima = np.array(sc.argrelextrema(vect, np.greater_equal, order = 10))
         local_maxima = local_maxima.reshape([local_maxima.shape[1],])
         local_maxima = local_maxima + indMin
         aoIndex = local_maxima[0]
