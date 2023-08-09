@@ -293,8 +293,15 @@ class PWVhypothesis(QDialog):
     def updatepwvHyp(self):
         print(self.distLeg, self.distArm, self.timeR_Leg, self.timeR_Arm)
         if not self.distLeg == "?" and not self.distArm == "?":
-            pwvHypothese = self.distArm / (self.timeR_Arm - (self.distArm*self.timeR_Leg - self.distLeg*self.timeR_Arm)/(self.distArm - self.distLeg))
-            self.pwvHyp.setText("Hypothesis PWV = " + str(np.round(pwvHypothese, 3)) + " m/s")
+            tAo_hyp = (self.distArm*self.timeR_Leg - self.distLeg*self.timeR_Arm)/(self.distArm - self.distLeg)
+            
+            #pwvHypotheseArm = self.distArm / (self.timeR_Arm - tAo_hyp)
+            pwvHypotheseLeg = self.distLeg / (self.timeR_Leg - tAo_hyp)
+            
+            text = "Computed t_Ao = " + str(np.round(tAo_hyp, 3)) + " s"
+            text += "\nComputed hypo PWV = " + str(np.round(pwvHypotheseLeg, 3)) + " s"
+            
+            self.pwvHyp.setText(text)
         
         return
     
