@@ -31,6 +31,76 @@ from scipy.fft import rfft, rfftfreq
 
 #%% Small useful functions
 
+def getBegEnd_bpArm(bpSC : SingleGraph, show = False):
+    
+    slope_Y = np.diff(bpSC._y)/np.diff(bpSC._x)
+    slope_Y = np.append(slope_Y, slope_Y[-1])
+    
+    maxDeriv = np.max(slope_Y)
+    minDeriv = np.min(slope_Y)
+    meanDeriv = np.mean(slope_Y)
+    
+    minValy = minDeriv/6
+    maxValy = maxDeriv/6
+    
+    plt.plot(bpSC._x, slope_Y)
+    plt.axvspan(0.4*max(bpSC._x), max(bpSC._x), color = "orange", alpha = 0.3)
+    plt.axhspan(minValy, maxValy, color = "orange", alpha = 0.3)
+    plt.show()
+    
+    offset_index = int(0.4*max(bpSC._x)*bpSC._samplerate)
+    search = slope_Y[offset_index:]
+    
+    cleanSearch_min = []
+    cleanSearch_max = []
+    for index, item in enumerate(search):
+        if item < minValy:
+            cleanSearch_min.append(item)
+        elif item > maxValy:
+            cleanSearch_max.append(item)
+        else :
+            cleanSearch_min.append(np.mean(slope_Y))
+            cleanSearch_max.append(np.mean(slope_Y))
+    
+    #  + offset_index
+    
+    minimum = sc.argrelmin(np.array(cleanSearch_min), order = int(2*bpSC._samplerate))
+    maximum = sc.argrelmax(np.array(cleanSearch_max), order = int(2*bpSC._samplerate))
+    
+    minimum = np.squeeze(minimum)
+    maximum = np.squeeze(maximum)
+    
+    
+    try :
+        minimum = minimum[-1]+offset_index
+    except:
+        minimum += offset_index
+    try :
+        maximum = maximum[-1]+offset_index
+    except:
+        maximum += offset_index
+    
+    if show == True:
+
+        
+        plt.plot(bpSC._x, slope_Y)
+        plt.plot(bpSC._x[minimum], slope_Y[minimum], "o")
+        plt.plot(bpSC._x[maximum], slope_Y[maximum], "o")
+        plt.axvspan(0.4*max(bpSC._x), max(bpSC._x), color = "orange", alpha = 0.3)
+        plt.axhspan(minValy, maxValy, color = "orange", alpha = 0.3)
+        plt.plot(bpSC._x[minimum], slope_Y[minimum])
+        plt.plot(bpSC._x[maximum], slope_Y[maximum])
+        plt.show()
+        
+        plt.plot(bpSC._x, bpSC._y)
+        plt.plot(bpSC._x[minimum], bpSC._y[minimum], "o", label = "Begin = "+str(minimum*bpSC._step))
+        plt.plot(bpSC._x[maximum], bpSC._y[maximum], "o", label = "End = "+ str(maximum*bpSC._step))
+        plt.title("Check good detection")
+        plt.legend(loc = "best")
+        plt.show()
+
+    return[minimum, minimum*bpSC._step], [maximum, maximum*bpSC._step]
+
 def index_conv(index : int, scg_fs, ecg_fs, indexType : str = None):
     """
     Function that converts an scg/ecg index into the other with different sampling rate for the same time.

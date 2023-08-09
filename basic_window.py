@@ -80,7 +80,10 @@ class MyWindow(QMainWindow):
     infosVector = [] # All the Data loaded in the program (each item = [SingleGraph, [cursor1, cursor2]])
     infosVisible = [] # Boolean list that tells if the corresponding info of the infosVector is set to visible or not
 
-    
+    begin = []
+    end = []    
+
+
     # Metadata useful for storage of analyzed graphs
     name = ""
     sex = ""
@@ -174,7 +177,7 @@ class MyWindow(QMainWindow):
         posStop = oneData._x[-1]
         startCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='start', angle=90, movable=True, pen=pg.mkPen(width=3))
         stopCursor = pg.InfiniteLine(pos=posStop, bounds=[posStart, posStop], label='stop', angle=90, movable=True, pen=pg.mkPen(width=3))
-        
+    
         #oneGraph.wheelEvent
         #oneGraph.setMouseEnabled(x=False, y=False)
         oneGraph.plot(oneData._x, oneData._y, pen='blue')        
@@ -389,7 +392,7 @@ class MyWindow(QMainWindow):
         posStop = oneData._x[-1]
         startCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='start', angle=90, movable=True, pen=pg.mkPen(width=3))
         stopCursor = pg.InfiniteLine(pos=posStop, bounds=[posStart, posStop], label='stop', angle=90, movable=True, pen=pg.mkPen(width=3))
-        
+    
         #oneGraph.wheelEvent
         #oneGraph.setMouseEnabled(x=False, y=False)
         oneGraph.plot(oneData._x, oneData._y, pen='blue')        
@@ -478,6 +481,7 @@ class MyWindow(QMainWindow):
             for i in range(len(tempVis)):
                 if tempVis[i] == True :
                     temp[i][1][0].sigPositionChanged.disconnect(startCursorPos_copy)
+                    #print(type(self.pos().x()))
                     temp[i][1][0].setPos(self.pos().x())
                     temp[i][1][0].sigPositionChanged.connect(startCursorPos_copy)
             
@@ -533,6 +537,9 @@ class MyWindow(QMainWindow):
                 # Add a new graph for all the data contained in a single file
                 if not "metaData" in list(data.keys()):
                     for oneData in allData:
+                        if oneData._title == "BParm":
+                            self.begin, self.end = getBegEnd_bpArm(oneData, show = True)
+                    for oneData in allData:
                         if oneData._title == "ECG":
                             oneData._title = oneData._title + " " + extension
                             
@@ -544,9 +551,12 @@ class MyWindow(QMainWindow):
                             else :
                                 print(oneData._title , "signal was not inverted")
                             self.addNewGraph(oneData)
+                        
                 else :
                     for oneData in allData:
-                        if oneData._title == "ECG json" or oneData._title == "ECG mat":
+                        if oneData._title == "BParm":
+                            self.begin, self.end = getBegEnd_bpArm(oneData, show = True)
+                        elif oneData._title == "ECG json" or oneData._title == "ECG mat":
                             
                             inverted = False
                             #corrECG, inverted = nk.ecg_invert(oneData._y, sampling_rate=oneData._samplerate, force=False, show=False)
@@ -556,12 +566,18 @@ class MyWindow(QMainWindow):
                             else :
                                 print(oneData._title , "signal was not inverted")
                             self.addNewGraph(oneData)
-                
+                            
+                        
                 forbidden = ['signal1', 'signal3', 'signal4', 'signal5', 'ECG json', 'ECG mat']
                 for oneData in allData:
                     if not oneData._title in forbidden:
                         self.addNewGraph(oneData)
-
+            
+                if not self.begin == [] and not self.end == []:
+                    print(self.begin, self.end)
+                    for i in range(len(self.infosVector)):
+                        self.infosVector[i][1][0].setPos(self.begin[1])
+                        self.infosVector[i][1][1].setPos(self.end[1])
 
             # Si deux fichiers chargés
             elif len(file_name) == 2 :
@@ -630,7 +646,10 @@ class MyWindow(QMainWindow):
                             self.layout.addWidget(self.txt_meta)
                             self.splitter.addWidget(self.txt_meta)
                             
-                            
+                for graph in allDataJSON:
+                    if graph._title == "BParm" :
+                        self.begin, self.end = getBegEnd_bpArm(graph, show = True)
+                        print("here : ", self.begin, self.end)
 
                 for graph in allDataJSON:
                     if graph._title == "ECG" :
@@ -644,6 +663,12 @@ class MyWindow(QMainWindow):
                             ecg_JSON._y = corrECG
                         else :
                             print(ecg_JSON._title , "signal was not inverted")
+                    
+                
+                for graph in allDataMLd:
+                    if graph._title == "BParm" :
+                        self.begin, self.end = getBegEnd_bpArm(graph, show = True)
+                
                 for graph in allDataMLd:
                     if graph._title == "ECG":
                         ecg_MLd = graph
@@ -659,9 +684,7 @@ class MyWindow(QMainWindow):
                     elif graph._title == "BPleg" :
                         # We filter the low frequency noise to get a "flat" signal
                         graph._y = butterHighPass(graph = graph, filtorder = 4, limfreq = 0.75, show=False)
-                    elif graph._title == "BPArm" :
-                        # We filter the low frequency noise to get a "flat" signal
-                        graph._y = butterHighPass(graph = graph, filtorder = 4, limfreq = 0.75, show=False)
+
                 
                 try :
                     which, [start, stop] = getStartStopIndexes(ecg_JSON, ecg_MLd, minHP, show=True)
@@ -669,11 +692,13 @@ class MyWindow(QMainWindow):
                 except : 
                     DialogPopup("Warning", "Synchronization seems impossible.\n The files might not be linked.").exec()
 
-                
+                todelay = 0
                 for graph in allDataJSON:
                     if which._title == "ECG json":
                         # Truncate the unused part of the MatLab data
                         x = graph._x[start:stop]
+                        print("HERE", self.begin, self.begin, min(x))
+                        todelay = min(x)
                         x = x-min(x)
                         y = graph._y[start:stop]
                         truncMLd = SingleGraph(x, y, graph._title, graph._samplerate, graph._step)
@@ -685,12 +710,18 @@ class MyWindow(QMainWindow):
                     if which._title == "ECG mat":
                         # Truncate the unused part of the MatLab data
                         x = graph._x[start:stop]
+                        print("HERE", self.begin, self.begin, min(x))
+                        todelay = min(x)
                         x = x-min(x)
                         y = graph._y[start:stop]
                         truncMLd = SingleGraph(x, y, graph._title, graph._samplerate, graph._step)
                         allData.append(truncMLd)
+                        
                     else:
                         allData.append(graph)
+                
+                self.begin = self.begin[1] - todelay
+                self.end = self.end[1] - todelay
                 
                 
                 # Add amplitude vectors of SCG to the list of available data
@@ -730,6 +761,7 @@ class MyWindow(QMainWindow):
                     DialogPopup("Warning", "Amplitude of SCG vector could not be computed").exec()
                 
                 
+                
                 # Add a new graph for all the data contained in both files (first the ECGs)
                 for oneData in allData:
                     if oneData._title == "ECG json" or oneData._title == "ECG mat":
@@ -741,6 +773,12 @@ class MyWindow(QMainWindow):
                     if not oneData._title in forbidden:
                         self.addNewGraph(oneData)
             
+                if not self.begin == [] and not self.end == []:
+                    for i in range(len(self.infosVector)):
+                        self.infosVector[i][1][0].setPos(self.begin)
+                        self.infosVector[i][1][1].setPos(self.end)
+            
+            
             else :
                 DialogPopup("Error", "You can only load one MatLab/JSON file at a time or one pair MatLab/JSON.").exec()
             
@@ -749,6 +787,8 @@ class MyWindow(QMainWindow):
         
         else : 
             DialogPopup("Warning", "No file selected.").exec()
+            
+
       
 #%% Save the file
 

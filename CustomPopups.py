@@ -657,7 +657,7 @@ class DisplMeanWindow(QMainWindow):
         except: print("Rejection of outliers graphs for bpLeg unsuccessful")
         
         # Does not work with the bpArm if it is too short
-        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.1)
+        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.2)
         except: print("Rejection of outliers graphs for bpArm unsuccessful")
         
         if not self.bpAo == None :
