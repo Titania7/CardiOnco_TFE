@@ -1,4 +1,4 @@
-name: envCardiOnco
+name: envTFE
 channels:
   - defaults
 dependencies:
@@ -57,6 +57,7 @@ dependencies:
       - docstring-to-markdown==0.11
       - docutils==0.19
       - entrypoints==0.4
+      - et-xmlfile==1.1.0
       - fastjsonschema==2.16.2
       - flake8==6.0.0
       - fonttools==4.38.0
@@ -99,6 +100,7 @@ dependencies:
       - neurokit2==0.2.2
       - numpy==1.24.2
       - numpydoc==1.5.0
+      - openpyxl==3.1.2
       - packaging==23.0
       - pandas==1.5.3
       - pandocfilters==1.5.0
@@ -142,6 +144,7 @@ dependencies:
       - python-slugify==8.0.0
       - pytoolconfig==1.2.5
       - pytz==2022.7.1
+      - pywavelets==1.4.1
       - pywin32==305
       - pywin32-ctypes==0.2.0
       - pyyaml==6.0
