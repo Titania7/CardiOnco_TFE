@@ -135,7 +135,7 @@ def getStartStopIndexes(ecg_JSON, ecg_MLd, minHP = False, show = False):
     """
     This function allows to synchronize the 2 ECGs json and matlab in order to give the Matlab's begin and end indexes for
     a synchronous display.
-    
+
     ----
     Inputs
     ----
@@ -566,67 +566,66 @@ def getBpOnsets_tang(bpGraphList, fs, title, filt = False, show = False):
     
     
         # Detection of the min value in firstGraph and max value in deriv
-        maxVal = np.max(bpGraph)
-        for i in range(len(bpGraph)):
-            if bpGraph[i] == maxVal:
-                relmaxValIndex = i
-        searchZone = bpGraph[:relmaxValIndex]
-        
-        minIndex = np.argmin(searchZone)
-        maxIndex = np.argmax(deriv)
-
+        relmaxValIndex = np.argmax(bpGraph)
+        print("The rel max value index is = to ... ", relmaxValIndex)
+        if relmaxValIndex >1:
+            searchZone = bpGraph[:relmaxValIndex]
+            
+            minIndex = np.argmin(searchZone)
+            maxIndex = np.argmax(deriv)
     
-        # First tangent calculation :
-        valy = searchZone[minIndex]
-        valx = x[minIndex]
-        #amin = deriv[minIndex]
-        # We force the derivative of the minumum to zero
-        amin = 0
-        bmin = valy-amin*valx
-        tgMin = amin*x+bmin
-        # Second tangent calculation :
-        valy = bpGraph[maxIndex]
-        valx = x[maxIndex]
-        amax = deriv[maxIndex]
-        bmax = valy-amax*valx
-        tgMaxDeriv = amax*x+bmax
-        # Determincation of the intersection point :
-        x_inters = (bmax-bmin)/(amin-amax)
-        y_inters = amin*x_inters+bmin
-
-        # Visualisation of the intersection with signal cleaned :
-        if show == True :
-            plt.figure()
-            fig, axis = plt.subplots(2, 1, figsize=(15, 8), sharex=True)
-            axis[0].plot(x, bpGraph, label = title)
-            axis[0].plot(x[minIndex], bpGraph[minIndex], 'o', color = 'magenta', label = "Min pressure point")
-            axis[0].plot(x, tgMin, '--',color = 'magenta', label = 'Min pressure tangent')
-            axis[0].plot(x[maxIndex], bpGraph[maxIndex], 'o', color = 'purple')
-            axis[0].plot(x, tgMaxDeriv, '--',color = 'purple', label = 'Max gradient tangent')
-            axis[0].set_title("Graph number "+ str(k))
-            axis[0].set_ylim([np.min(bpGraph)-0.5*(np.mean(bpGraph)-np.min(bpGraph)),np.max(bpGraph)+0.5*(np.max(bpGraph)-np.mean(bpGraph))])
-            axis[0].plot(x_inters, y_inters, 'o', color = 'red', label = 'Onset of the pressure bump')
-            axis[0].legend(loc="best")
         
-            axis[0].grid()
-            axis[1].plot(x, derivNotCleaned, label = 'Raw gradient')
-            axis[1].plot(x, deriv, label = 'Cleaned gradient')
-            axis[1].plot(x[maxIndex], deriv[maxIndex], 'o', color = 'purple', label = "Max gradient point")
-            axis[1].plot(x[minIndex], deriv[minIndex], 'o', color = 'magenta')
-            axis[1].set_title("Value of its gradient")
-            axis[1].legend(loc="best")
-            axis[1].grid()
+            # First tangent calculation :
+            valy = searchZone[minIndex]
+            valx = x[minIndex]
+            #amin = deriv[minIndex]
+            # We force the derivative of the minumum to zero
+            amin = 0
+            bmin = valy-amin*valx
+            tgMin = amin*x+bmin
+            # Second tangent calculation :
+            valy = bpGraph[maxIndex]
+            valx = x[maxIndex]
+            amax = deriv[maxIndex]
+            bmax = valy-amax*valx
+            tgMaxDeriv = amax*x+bmax
+            # Determincation of the intersection point :
+            x_inters = (bmax-bmin)/(amin-amax)
+            y_inters = amin*x_inters+bmin
     
-            #axis.set_xlim([0.25, 0.3])
-            fig.tight_layout(pad=2.0)
-            plt.setp(axis[1], xlabel='Time [s]')
-            plt.setp(axis, ylabel='Magnitude')
-            plt.show()
-            plt.close()
+            # Visualisation of the intersection with signal cleaned :
+            if show == True :
+                plt.figure()
+                fig, axis = plt.subplots(2, 1, figsize=(15, 8), sharex=True)
+                axis[0].plot(x, bpGraph, label = title)
+                axis[0].plot(x[minIndex], bpGraph[minIndex], 'o', color = 'magenta', label = "Min pressure point")
+                axis[0].plot(x, tgMin, '--',color = 'magenta', label = 'Min pressure tangent')
+                axis[0].plot(x[maxIndex], bpGraph[maxIndex], 'o', color = 'purple')
+                axis[0].plot(x, tgMaxDeriv, '--',color = 'purple', label = 'Max gradient tangent')
+                axis[0].set_title("Graph number "+ str(k))
+                axis[0].set_ylim([np.min(bpGraph)-0.5*(np.mean(bpGraph)-np.min(bpGraph)),np.max(bpGraph)+0.5*(np.max(bpGraph)-np.mean(bpGraph))])
+                axis[0].plot(x_inters, y_inters, 'o', color = 'red', label = 'Onset of the pressure bump')
+                axis[0].legend(loc="best")
+            
+                axis[0].grid()
+                axis[1].plot(x, derivNotCleaned, label = 'Raw gradient')
+                axis[1].plot(x, deriv, label = 'Cleaned gradient')
+                axis[1].plot(x[maxIndex], deriv[maxIndex], 'o', color = 'purple', label = "Max gradient point")
+                axis[1].plot(x[minIndex], deriv[minIndex], 'o', color = 'magenta')
+                axis[1].set_title("Value of its gradient")
+                axis[1].legend(loc="best")
+                axis[1].grid()
         
-        
-        bpOnsetstime.append(x_inters)
-        bpOnsetsindex.append(int(np.round(x_inters*fs)))
+                #axis.set_xlim([0.25, 0.3])
+                fig.tight_layout(pad=2.0)
+                plt.setp(axis[1], xlabel='Time [s]')
+                plt.setp(axis, ylabel='Magnitude')
+                plt.show()
+                plt.close()
+            
+            
+            bpOnsetstime.append(x_inters)
+            bpOnsetsindex.append(int(np.round(x_inters*fs)))
         
         
     return [bpOnsetsindex, bpOnsetstime]# Index then time then Y

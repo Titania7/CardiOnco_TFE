@@ -240,7 +240,134 @@ def openJSON(window, pathfile : str):
         toreturn = contents[key]
         
         
+    elif list(contents.keys()) == ['record', 'analysis', 'signals', 'patient']:
+        print("LastVersion HK files")
         
+        age = contents["patient"]["data"][0]["age"]
+        height = contents["patient"]["data"][0]["height"]
+        weight = contents["patient"]["data"][0]["weight"]
+        sex = contents["patient"]["data"][0]["sex"]
+
+        datetime = str(contents["record"]["openingDate"])
+        newDate = datetime[6:8]+datetime[4:6]+datetime[:4]
+        newTime = datetime[8:]
+        nameFile = contents["patient"]["name"][-3:]+ ' ' + newDate + ' ' + newTime 
+        #%%
+        dataRoot2 = contents["record"]["content"]["en"]["compoundValue"]
+
+
+        toret = {}
+
+
+        firstName = nameFile
+        lastName = nameFile    
+        patientSex = sex
+        patientWeight = weight
+        patientTall = height
+        patientAge = age
+
+
+
+        for item in dataRoot2:
+            listItems = item['content']['en']['compoundValue']
+            
+            if len(listItems) == 4 : # ECG
+                dataECG = listItems
+                
+                for value in dataECG:
+                    currentValue = value['content']['en']
+                    
+                    if 'numberValue' in list(currentValue.keys()):
+                        nbrSamples_ECG = currentValue['numberValue']
+                        
+                    elif 'measureValue' in list(currentValue.keys()) and currentValue['measureValue']['unit'] == 'seconds':
+                        duration_ECG = currentValue['measureValue']['value']
+                    
+                    elif 'stringValue' in list(currentValue.keys()):
+                        ecg_Units = currentValue['stringValue']
+                        ecg_Units = json.loads(ecg_Units)
+                        ecg_factor = ecg_Units['I']['factor']
+                        rawECG = currentValue['timeSeries']['samples']
+                        
+
+            elif len(listItems) == 5 : # SCG
+                dataSCG = listItems
+                
+                for value in dataSCG:
+                    currentValue = value['content']['en']
+                    
+                    if 'numberValue' in list(currentValue.keys()):
+                        nbrSamples_SCG = currentValue['numberValue']
+                    
+                    elif 'measureValue' in list(currentValue.keys()) and currentValue['measureValue']['unit'] == 'seconds':
+                        duration_SCG = currentValue['measureValue']['value']
+                    
+                    elif 'stringValue' in list(currentValue.keys()): # SCG Lin or Rot
+                        SCG_which = currentValue['stringValue']
+                        SCG_which = json.loads(SCG_which)
+                        
+                        if 'X' in list(SCG_which.keys()):
+                            rawSCG_lin = currentValue['timeSeries']['samples']
+                            
+                        elif 'RX' in list(SCG_which.keys()):
+                            rawSCG_rot = currentValue['timeSeries']['samples']
+                    
+        onlyECG = []
+        for i in range(len(rawECG)):
+            onlyECG.append(rawECG[i][1])
+
+        #dataSCG = dataRoot2[2]['content']['en']['compoundValue']
+                                    
+        #rawSCG_lin = dataSCG[1]['content']['en']['timeSeries']['samples']
+        onlySCGx = []
+        onlySCGy = []
+        onlySCGz = []
+
+        for i in range(len(rawSCG_lin)):
+            onlySCGx.append(rawSCG_lin[i][1])
+            onlySCGy.append(rawSCG_lin[i][2])
+            onlySCGz.append(rawSCG_lin[i][3])
+
+        #rawSCG_rot = dataSCG[3]['content']['en']['timeSeries']['samples'] 
+        onlySCGxR = []
+        onlySCGyR = []
+        onlySCGzR = []
+
+        for i in range(len(rawSCG_rot)):
+            onlySCGxR.append(rawSCG_rot[i][1])
+            onlySCGyR.append(rawSCG_rot[i][2])
+            onlySCGzR.append(rawSCG_rot[i][3])
+            
+        #nbrSamples_SCG = dataSCG[0]['content']['en']['numberValue'] # (6104samples)
+        #duration_SCG = dataSCG[2]['content']['en']['measureValue']['value'] # 60s
+        
+        
+        meta = {}
+        meta["nameFile"] = nameFile
+        meta['Sex[m/f]'] = sex
+        meta['Weight[kg]'] = weight
+        meta['Height[cm]'] = height
+        meta['Age[y]'] = age
+
+        toret["meta"] =  meta
+        
+        ecgDict = {}
+        ecgDict['sfreq[Hz]'] = nbrSamples_ECG/duration_ECG
+        ecgDict['numSamples'] = nbrSamples_ECG
+        ecgDict['duration[s]'] = duration_ECG
+        ecgDict['ECG[uV]'] = np.array(onlyECG)
+        ecgDict['ECGfactor'] = ecg_factor
+        toret['ECG'] = ecgDict
+
+        scgDict = {}
+        scgDict['sfreq[Hz]'] = nbrSamples_SCG/duration_SCG
+        scgDict['numSamples'] = nbrSamples_SCG
+        scgDict['duration[s]'] = duration_SCG
+        scgDict['scgLin[m/s^2]'] = {"x": np.array(onlySCGx) , "y": np.array(onlySCGy), "z": np.array(onlySCGz)}
+        scgDict['scgRot[deg/s]'] = {"x": np.array(onlySCGxR) , "y": np.array(onlySCGyR), "z": np.array(onlySCGzR)}
+        toret['SCG'] = scgDict
+
+        toreturn = toret
     
     elif list(contents.keys()) == ["data"]:
         print("Hiba's file")

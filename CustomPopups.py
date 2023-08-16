@@ -555,8 +555,6 @@ class DisplMeanWindow(QMainWindow):
             while len(mean_bpLeg[i])>minsize:
                 mean_bpLeg[i] = np.delete(mean_bpLeg[i],-1)
         
-        
-
                 
         
         """
@@ -653,15 +651,15 @@ class DisplMeanWindow(QMainWindow):
         self.addECG_centerR(ecgML)
         self.printHRV(ecgML, pqrstMAT)
         
-        try: mean_bpLeg, idx_bpLeg = cleanLOF(mean_bpLeg, 5, 0.4)
+        try: mean_bpLeg, idx_bpLeg = cleanLOF(mean_bpLeg, 10, 0.5)
         except: print("Rejection of outliers graphs for bpLeg unsuccessful")
         
         # Does not work with the bpArm if it is too short
-        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.2)
+        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.4)
         except: print("Rejection of outliers graphs for bpArm unsuccessful")
         
         if not self.bpAo == None :
-            try: mean_bpAo, idx_bpAo = cleanLOF(mean_bpAo, 5, 0.4)
+            try: mean_bpAo, idx_bpAo = cleanLOF(mean_bpAo, 10, 0.5)
             except: print("Rejection of outliers graphs for bpAo unsuccessful")
         
         
@@ -1035,8 +1033,9 @@ class DisplMeanWindow(QMainWindow):
             courbe = graphWidget.plot(x, trace, pen="grey")
             courbe.setOpacity(0.3)     
             
-            points = pg.ScatterPlotItem(x=[x[onsBPrel[i]]], y=[trace[onsBPrel[i]]], brush=rouge, pen=None)
-            graphWidget.addItem(points) 
+            if i < len(onsBPrel):
+                points = pg.ScatterPlotItem(x=[x[onsBPrel[i]]], y=[trace[onsBPrel[i]]], brush=rouge, pen=None)
+                graphWidget.addItem(points) 
          
         
         graphWidget.setTitle("Mean "+bpSC._title)
