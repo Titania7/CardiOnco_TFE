@@ -10,7 +10,7 @@ Launch the file with the "play" button in Spyder and have fun !
 ------
 
 ## In case Spyder does not launch
-- Uninstall `envTFE` from the Anaconda **navigator** ("enviroments" page in the left-side of the interface)
+- Uninstall `envTFE` from the Anaconda **navigator** ("environments" page in the left-side of the interface)
 - Create a new virtual environment (optional)
 - In Anaconda **prompt**, activate the new environment (if necessary) with `conda activate newEnvName` (with "newEnvName" the name of your environment ; if you did not create a new environment, skip this step)
 - In the anaconda prompt, write : `conda unistall spyder-kernels` and once it is done, write `conda install spyder-kernels=0.*`
