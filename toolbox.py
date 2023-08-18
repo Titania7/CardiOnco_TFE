@@ -13,7 +13,6 @@ from sklearn.neighbors import LocalOutlierFactor
 import neurokit2 as nk
 import pandas as pd
 import math
-import pywt
 from scipy.signal import hilbert
 
 import matplotlib.pyplot as plt
@@ -903,39 +902,6 @@ def siecinski2020(cleanYrot, fs, show = False):
         
     ao_peak_GCGy = ao_peak_GCGy.astype(int)
     return ao_peak_GCGy
-
-def riveropouymiro2016(cleanAllLinGraphs, fs, show = False):
-    
-    step = 1/fs
-    
-    time = np.arange(0, len(cleanAllLinGraphs[0])*step, step)
-    while len(time)>len(cleanAllLinGraphs[0]):
-        time = np.delete(time, -1)
-
-    ao_Db4 = np.array([])
-    for vect in cleanAllLinGraphs:
-        # Cut the frequencies between 4-40 Hz
-        graph = SingleGraph(time, vect, title = "", samplerate=fs, step=step)
-        vect = butterLowPass(graph, filtorder=3, limfreq=30, show = False)
-        
-        wavelet = 'db4'  # Ondelette de Daubechies 4
-        scales = np.arange(25,600,25)  # Échelles à utiliser
-
-        # Calcul de la CWT
-        [coeffs, freqs] = pywt.dwt(vect, 'db4')
-        
-        # Analyse des coefficients
-        plt.figure(figsize=(10, 6))
-        
-        # Afficher les coefficients CWT
-        plt.imshow([np.abs(coeffs),np.abs(freqs)], extent=[time[0], time[-1], scales[0], scales[-1]], cmap='viridis', aspect='auto')
-        plt.colorbar(label='Amplitude')
-        plt.xlabel('Temps (s)')
-        plt.ylabel('Échelle')
-        plt.title('CWT du signal avec l\'ondelette de Daubechies 4')
-
-        plt.show()
-        
 
     
 #%% Retrieval of the AO point techniques
