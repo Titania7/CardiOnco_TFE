@@ -566,13 +566,21 @@ def getBpOnsets_tang(bpGraphList, fs, title, filt = False, show = False):
     
         # Detection of the min value in firstGraph and max value in deriv
         relmaxValIndex = np.argmax(bpGraph)
+        
         print("The rel max value index is = to ... ", relmaxValIndex)
         if relmaxValIndex >1:
             searchZone = bpGraph[:relmaxValIndex]
             
             minIndex = np.argmin(searchZone)
-            maxIndex = np.argmax(deriv)
-    
+            #maxIndex = np.argmax(deriv)
+            
+            local_maxima = np.array(sc.argrelextrema(deriv, np.greater_equal, order = int(0.05*fs)))
+            local_maxima = local_maxima.reshape([local_maxima.shape[1],])
+
+            if len(local_maxima) == 1 :
+                maxIndex = local_maxima[0]
+            else :
+                maxIndex = local_maxima[1]
         
             # First tangent calculation :
             valy = searchZone[minIndex]
@@ -902,6 +910,8 @@ def siecinski2020(cleanYrot, fs, show = False):
         
     ao_peak_GCGy = ao_peak_GCGy.astype(int)
     return ao_peak_GCGy
+
+        
 
     
 #%% Retrieval of the AO point techniques

@@ -145,11 +145,30 @@ def openMatLabdigere(pathfile : str):
         print("Florine type")
         
         nbrMeasures = mat['n'][0][0] # int type => OK
-        #print("Number of measures = ", nbrMeasures)
+        print("Number of measures = ", nbrMeasures)
         
-
-        data={}
-        for i in range(nbrMeasures):
+        if nbrMeasures == 1 :
+            data={}
+            for i in range(nbrMeasures):
+                name = 'b'+str((i+1))
+                nbrChannels = mat[name].shape[1]
+                #print("Number of channels = ", nbrChannels)
+                trackNames = idNames('new_MatLab', nbrChannels)
+                
+                
+                temp = []
+                for j in range(len(mat[name])):
+                    temp.append(mat[name][j])
+                finalTemp = [list(ele) for ele in list(zip(*temp))]
+                count = 0
+                temp = {}
+                for graph in finalTemp :
+                    temp[trackNames[count]] = {"signal": np.array(graph), "samplerate": 200}
+                    count = count+1
+                data["Measure "+str(i+1)] = temp
+        elif nbrMeasures >1 :
+            data={}
+            i = nbrMeasures-1
             name = 'b'+str((i+1))
             nbrChannels = mat[name].shape[1]
             #print("Number of channels = ", nbrChannels)
