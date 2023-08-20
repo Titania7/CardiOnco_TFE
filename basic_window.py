@@ -685,9 +685,8 @@ class MyWindow(QMainWindow):
                         # We filter the low frequency noise to get a "flat" signal
                         graph._y = butterHighPass(graph = graph, filtorder = 4, limfreq = 0.75, show=False)
 
-                
                 try :
-                    which, [start, stop] = getStartStopIndexes(ecg_JSON, ecg_MLd, minHP, show=True)
+                    which, [start, stop] = getStartStopIndexes(ecg_JSON, ecg_MLd, minHP, show=False)
                     # "which" is the longest recording to be trimmed
                 except : 
                     DialogPopup("Warning", "Synchronization seems impossible.\n The files might not be linked.").exec()

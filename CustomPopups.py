@@ -1034,8 +1034,9 @@ class DisplMeanWindow(QMainWindow):
             courbe.setOpacity(0.3)     
             
             if i < len(onsBPrel):
-                points = pg.ScatterPlotItem(x=[x[onsBPrel[i]]], y=[trace[onsBPrel[i]]], brush=rouge, pen=None)
-                graphWidget.addItem(points) 
+                if onsBPrel[i] < len(trace):
+                    points = pg.ScatterPlotItem(x=[x[onsBPrel[i]]], y=[trace[onsBPrel[i]]], brush=rouge, pen=None)
+                    graphWidget.addItem(points) 
          
         
         graphWidget.setTitle("Mean "+bpSC._title)
@@ -1202,60 +1203,67 @@ class DisplMeanWindow(QMainWindow):
         
         for i, p in enumerate(nextPon):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsPon = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=bleu, pen=None, label = "P onsets")
-            else :
-                pointsPon = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=bleu, pen=None)
-            graphWidget.addItem(pointsPon) 
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsPon = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=bleu, pen=None, label = "P onsets")
+                else :
+                    pointsPon = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=bleu, pen=None)
+                graphWidget.addItem(pointsPon) 
         
         for i, p in enumerate(nextP):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsP = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=violet, pen=None, label = "P peaks")
-            else :
-                pointsP = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=violet, pen=None)
-            graphWidget.addItem(pointsP) 
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsP = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=violet, pen=None, label = "P peaks")
+                else :
+                    pointsP = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=violet, pen=None)
+                graphWidget.addItem(pointsP) 
          
         for i, p in enumerate(nextQ):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsQ = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rose, pen=None, label = "Q peaks")
-            else :
-                pointsQ = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rose, pen=None)
-            graphWidget.addItem(pointsQ) 
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsQ = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rose, pen=None, label = "Q peaks")
+                else :
+                    pointsQ = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rose, pen=None)
+                graphWidget.addItem(pointsQ) 
         
         for i, p in enumerate(nextR):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsR = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rouge, pen=None, label = "R peaks")
-            else :
-                pointsR = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rouge, pen=None)
-            graphWidget.addItem(pointsR)
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsR = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rouge, pen=None, label = "R peaks")
+                else :
+                    pointsR = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=rouge, pen=None)
+                graphWidget.addItem(pointsR)
             
         for i, p in enumerate(nextS):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsS = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=orange, pen=None, label = "S peaks")
-            else :
-                pointsS = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=orange, pen=None)
-            graphWidget.addItem(pointsS)
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsS = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=orange, pen=None, label = "S peaks")
+                else :
+                    pointsS = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=orange, pen=None)
+                graphWidget.addItem(pointsS)
             
         for i, p in enumerate(nextT):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsT = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=vert, pen=None, label = "T peaks")
-            else :
-                pointsT = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=vert, pen=None)
-            graphWidget.addItem(pointsT)
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsT = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=vert, pen=None, label = "T peaks")
+                else :
+                    pointsT = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=vert, pen=None)
+                graphWidget.addItem(pointsT)
         
         
         for i, p in enumerate(nextToff):
             currentgraph = meanECG[i]
-            if i == 0:
-                pointsToff = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=turquoise, pen=None, label = "T offsets")
-            else :
-                pointsToff = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=turquoise, pen=None)
-            graphWidget.addItem(pointsToff)
+            if p < len(currentgraph):
+                if i == 0:
+                    pointsToff = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=turquoise, pen=None, label = "T offsets")
+                else :
+                    pointsToff = pg.ScatterPlotItem(x=[x[p]], y=[currentgraph[p]], brush=turquoise, pen=None)
+                graphWidget.addItem(pointsToff)
         
         graphWidget.setTitle("Mean "+ecg._title)
         graphWidget.setLabel('left', 'Magnitude')
