@@ -425,6 +425,8 @@ def openJSON(window, pathfile : str):
 
     
     elif "metaData" in list(contents.keys()) or "meta_data" in list(contents.keys()):
+        print("helloooo")
+        
         metadat = ""
         try :
             timestamp = contents["metaData"]["date"]
@@ -570,6 +572,7 @@ def openJSON(window, pathfile : str):
 
     
     elif 'data' in list(contents.keys()):
+        print("case last")
         contents = contents['data']
     
     
@@ -742,15 +745,15 @@ def openJSON(window, pathfile : str):
             
         #nbrSamples_SCG = dataSCG[0]['content']['en']['numberValue'] # (6104samples)
         #duration_SCG = dataSCG[2]['content']['en']['measureValue']['value'] # 60s
+        meta = {}
         
-        toret['Name'] = firstName
-        toret['Surname'] = lastName
-        toret['Date'] = dateData
+        meta['nameFile'] = lastName + " " + str(dateData)[6:8]+str(dateData)[4:6]+str(dateData)[:4] + " "+str(dateData)[8:]
         
-        toret['Sex[m/f]'] = patientSex
-        toret['Weight[kg]'] = patientWeight
-        toret['Height[cm]'] = patientTall
-        toret['Age[y]'] = patientAge
+        meta['Sex[m/f]'] = patientSex
+        meta['Weight[kg]'] = patientWeight
+        meta['Height[cm]'] = patientTall
+        meta['Age[y]'] = patientAge
+        toret["meta"] = meta
         
         ecgDict = {}
         ecgDict['sfreq[Hz]'] = nbrSamples_ECG/duration_ECG
