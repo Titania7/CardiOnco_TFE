@@ -1034,7 +1034,7 @@ class DisplMeanWindow(QMainWindow):
             courbe.setOpacity(0.3)     
             
             if i < len(onsBPrel):
-                if onsBPrel[i] < len(trace):
+                if onsBPrel[i] < len(trace) and onsBPrel[i] > 0:
                     points = pg.ScatterPlotItem(x=[x[onsBPrel[i]]], y=[trace[onsBPrel[i]]], brush=rouge, pen=None)
                     graphWidget.addItem(points) 
          
