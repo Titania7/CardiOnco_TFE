@@ -630,9 +630,9 @@ def getBpOnsets_tang(bpGraphList, fs, title, filt = False, show = False):
                 plt.show()
                 plt.close()
             
-            
-            bpOnsetstime.append(x_inters)
-            bpOnsetsindex.append(int(np.round(x_inters*fs)))
+            if x_inters > 0:
+                bpOnsetstime.append(x_inters)
+                bpOnsetsindex.append(int(np.round(x_inters*fs)))
         
         
     return [bpOnsetsindex, bpOnsetstime]# Index then time then Y

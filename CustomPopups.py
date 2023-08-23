@@ -715,6 +715,7 @@ class DisplMeanWindow(QMainWindow):
             filtered_mydata1 = [item for i, item in enumerate(mydata[1]) if lof_scores[i] == 1]
             filtered_data = [filtered_mydata0, filtered_mydata1]
             # Afficher les scores LOF
+            print("Filt. times = ", filtered_mydata1, filtered_mydata0)
             print("LOF Scores:", lof_scores)
             
             return filtered_data
