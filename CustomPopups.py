@@ -702,10 +702,31 @@ class DisplMeanWindow(QMainWindow):
         relAO_4090 = getAO_4090ms(allVectlin, linSCG._samplerate, show = False)
         relAO_2dPeak = getAO_2pAfter40ms(allVectlin, linSCG._samplerate, show = False)
         
+        def removeOutliers(mydata):
+            # Réorganiser les données en une matrice 2D
+            data = np.array(mydata[1]).reshape(-1, 1)
+
+            # Initialiser l'objet LOF
+            lof = LocalOutlierFactor(n_neighbors=5, contamination=0.3)
+
+            # Calculer les scores LOF pour chaque point
+            lof_scores = lof.fit_predict(data)
+            filtered_mydata0 = [item for i, item in enumerate(mydata[0]) if lof_scores[i] == 1]
+            filtered_mydata1 = [item for i, item in enumerate(mydata[1]) if lof_scores[i] == 1]
+            filtered_data = [filtered_mydata0, filtered_mydata1]
+            # Afficher les scores LOF
+            print("LOF Scores:", lof_scores)
+            
+            return filtered_data
+        
+        
         onsBPLeg = getBpOnsets_tang(mean_bpLeg, bpLeg._samplerate, bpLeg._title, filt = True, show = False)
+        onsBPLeg = removeOutliers(onsBPLeg)
         onsBPArm = getBpOnsets_tang(mean_bpArm, self.bpArm._samplerate, self.bpArm._title, filt = True, show = False)
+        onsBPArm = removeOutliers(onsBPArm)
         if not self.bpAo == None :
             onsBPAo = getBpOnsets_tang(mean_bpAo, self.bpAo._samplerate, self.bpAo._title, filt = True, show = False)
+            onsBPAo = removeOutliers(onsBPAo)
         
         #%% Definition of colors for the graphs
         
@@ -1033,7 +1054,7 @@ class DisplMeanWindow(QMainWindow):
             courbe = graphWidget.plot(x, trace, pen="grey")
             courbe.setOpacity(0.3)     
             
-            if i < len(onsBPrel):
+            if i < len(onsBPrel) and i<len(onsBPrel):
                 if onsBPrel[i] < len(trace) and onsBPrel[i] > 0:
                     points = pg.ScatterPlotItem(x=[x[onsBPrel[i]]], y=[trace[onsBPrel[i]]], brush=rouge, pen=None)
                     graphWidget.addItem(points) 
