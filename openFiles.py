@@ -57,38 +57,22 @@ def openMatLabdigere(pathfile : str):
         for obj in allSCGData["ECG"]:
             for element in obj[0]:
                 ecg = np.append(ecg, element)
-
+        
         x_lin = np.array([])
-        for obj in allSCGData["SCG_lin_Vsq_x"]:
-            for element in obj[0]:
-                x_lin = np.append(x_lin, element)
-         
         y_lin = np.array([])
-        for obj in allSCGData["SCG_lin_Vsq_y"]:
-            for element in obj[0]:
-                y_lin = np.append(y_lin, element)
-
         z_lin = np.array([]) 
-        for obj in allSCGData["SCG_lin_Vsq_z"]:
-            for element in obj[0]:
-                z_lin = np.append(z_lin, element)
-
+        for obj in mat["resL2"]["SCG_lin_Vel"][0][0]:
+            x_lin = np.append(x_lin, obj[0])
+            y_lin = np.append(y_lin, obj[1])
+            z_lin = np.append(z_lin, obj[2])
 
         x_rot = np.array([])
-        for obj in allSCGData["SCG_rot_Vsq_x"]:
-            for element in obj[0]:
-                x_rot = np.append(x_rot, element)
-         
         y_rot = np.array([])
-        for obj in allSCGData["SCG_rot_Vsq_y"]:
-            for element in obj[0]:
-                y_rot = np.append(y_rot, element)
-
         z_rot = np.array([])
-        for obj in allSCGData["SCG_rot_Vsq_z"]:
-            for element in obj[0]:
-                z_rot = np.append(z_rot, element)
-
+        for obj in mat["resL2"]["SCG_rot_Vel"][0][0]:
+            x_rot = np.append(x_rot, obj[0])
+            y_rot = np.append(y_rot, obj[1])
+            z_rot = np.append(z_rot, obj[2])
         
         toret = {}
         
@@ -145,30 +129,11 @@ def openMatLabdigere(pathfile : str):
         print("Florine type")
         
         nbrMeasures = mat['n'][0][0] # int type => OK
-        print("Number of measures = ", nbrMeasures)
+        #print("Number of measures = ", nbrMeasures)
         
-        if nbrMeasures == 1 :
-            data={}
-            for i in range(nbrMeasures):
-                name = 'b'+str((i+1))
-                nbrChannels = mat[name].shape[1]
-                #print("Number of channels = ", nbrChannels)
-                trackNames = idNames('new_MatLab', nbrChannels)
-                
-                
-                temp = []
-                for j in range(len(mat[name])):
-                    temp.append(mat[name][j])
-                finalTemp = [list(ele) for ele in list(zip(*temp))]
-                count = 0
-                temp = {}
-                for graph in finalTemp :
-                    temp[trackNames[count]] = {"signal": np.array(graph), "samplerate": 200}
-                    count = count+1
-                data["Measure "+str(i+1)] = temp
-        elif nbrMeasures >1 :
-            data={}
-            i = nbrMeasures-1
+
+        data={}
+        for i in range(nbrMeasures):
             name = 'b'+str((i+1))
             nbrChannels = mat[name].shape[1]
             #print("Number of channels = ", nbrChannels)
@@ -259,134 +224,7 @@ def openJSON(window, pathfile : str):
         toreturn = contents[key]
         
         
-    elif list(contents.keys()) == ['record', 'analysis', 'signals', 'patient']:
-        print("LastVersion HK files")
         
-        age = contents["patient"]["data"][0]["age"]
-        height = contents["patient"]["data"][0]["height"]
-        weight = contents["patient"]["data"][0]["weight"]
-        sex = contents["patient"]["data"][0]["sex"]
-
-        datetime = str(contents["record"]["openingDate"])
-        newDate = datetime[6:8]+datetime[4:6]+datetime[:4]
-        newTime = datetime[8:]
-        nameFile = contents["patient"]["name"][-3:]+ ' ' + newDate + ' ' + newTime 
-        #%%
-        dataRoot2 = contents["record"]["content"]["en"]["compoundValue"]
-
-
-        toret = {}
-
-
-        firstName = nameFile
-        lastName = nameFile    
-        patientSex = sex
-        patientWeight = weight
-        patientTall = height
-        patientAge = age
-
-
-
-        for item in dataRoot2:
-            listItems = item['content']['en']['compoundValue']
-            
-            if len(listItems) == 4 : # ECG
-                dataECG = listItems
-                
-                for value in dataECG:
-                    currentValue = value['content']['en']
-                    
-                    if 'numberValue' in list(currentValue.keys()):
-                        nbrSamples_ECG = currentValue['numberValue']
-                        
-                    elif 'measureValue' in list(currentValue.keys()) and currentValue['measureValue']['unit'] == 'seconds':
-                        duration_ECG = currentValue['measureValue']['value']
-                    
-                    elif 'stringValue' in list(currentValue.keys()):
-                        ecg_Units = currentValue['stringValue']
-                        ecg_Units = json.loads(ecg_Units)
-                        ecg_factor = ecg_Units['I']['factor']
-                        rawECG = currentValue['timeSeries']['samples']
-                        
-
-            elif len(listItems) == 5 : # SCG
-                dataSCG = listItems
-                
-                for value in dataSCG:
-                    currentValue = value['content']['en']
-                    
-                    if 'numberValue' in list(currentValue.keys()):
-                        nbrSamples_SCG = currentValue['numberValue']
-                    
-                    elif 'measureValue' in list(currentValue.keys()) and currentValue['measureValue']['unit'] == 'seconds':
-                        duration_SCG = currentValue['measureValue']['value']
-                    
-                    elif 'stringValue' in list(currentValue.keys()): # SCG Lin or Rot
-                        SCG_which = currentValue['stringValue']
-                        SCG_which = json.loads(SCG_which)
-                        
-                        if 'X' in list(SCG_which.keys()):
-                            rawSCG_lin = currentValue['timeSeries']['samples']
-                            
-                        elif 'RX' in list(SCG_which.keys()):
-                            rawSCG_rot = currentValue['timeSeries']['samples']
-                    
-        onlyECG = []
-        for i in range(len(rawECG)):
-            onlyECG.append(rawECG[i][1])
-
-        #dataSCG = dataRoot2[2]['content']['en']['compoundValue']
-                                    
-        #rawSCG_lin = dataSCG[1]['content']['en']['timeSeries']['samples']
-        onlySCGx = []
-        onlySCGy = []
-        onlySCGz = []
-
-        for i in range(len(rawSCG_lin)):
-            onlySCGx.append(rawSCG_lin[i][1])
-            onlySCGy.append(rawSCG_lin[i][2])
-            onlySCGz.append(rawSCG_lin[i][3])
-
-        #rawSCG_rot = dataSCG[3]['content']['en']['timeSeries']['samples'] 
-        onlySCGxR = []
-        onlySCGyR = []
-        onlySCGzR = []
-
-        for i in range(len(rawSCG_rot)):
-            onlySCGxR.append(rawSCG_rot[i][1])
-            onlySCGyR.append(rawSCG_rot[i][2])
-            onlySCGzR.append(rawSCG_rot[i][3])
-            
-        #nbrSamples_SCG = dataSCG[0]['content']['en']['numberValue'] # (6104samples)
-        #duration_SCG = dataSCG[2]['content']['en']['measureValue']['value'] # 60s
-        
-        
-        meta = {}
-        meta["nameFile"] = nameFile
-        meta['Sex[m/f]'] = sex
-        meta['Weight[kg]'] = weight
-        meta['Height[cm]'] = height
-        meta['Age[y]'] = age
-
-        toret["meta"] =  meta
-        
-        ecgDict = {}
-        ecgDict['sfreq[Hz]'] = nbrSamples_ECG/duration_ECG
-        ecgDict['numSamples'] = nbrSamples_ECG
-        ecgDict['duration[s]'] = duration_ECG
-        ecgDict['ECG[uV]'] = np.array(onlyECG)
-        ecgDict['ECGfactor'] = ecg_factor
-        toret['ECG'] = ecgDict
-
-        scgDict = {}
-        scgDict['sfreq[Hz]'] = nbrSamples_SCG/duration_SCG
-        scgDict['numSamples'] = nbrSamples_SCG
-        scgDict['duration[s]'] = duration_SCG
-        scgDict['scgLin[m/s^2]'] = {"x": np.array(onlySCGx) , "y": np.array(onlySCGy), "z": np.array(onlySCGz)}
-        scgDict['scgRot[deg/s]'] = {"x": np.array(onlySCGxR) , "y": np.array(onlySCGyR), "z": np.array(onlySCGzR)}
-        toret['SCG'] = scgDict
-
-        toreturn = toret
     
     elif list(contents.keys()) == ["data"]:
         print("Hiba's file")
@@ -425,8 +263,6 @@ def openJSON(window, pathfile : str):
 
     
     elif "metaData" in list(contents.keys()) or "meta_data" in list(contents.keys()):
-        print("helloooo")
-        
         metadat = ""
         try :
             timestamp = contents["metaData"]["date"]
@@ -498,7 +334,7 @@ def openJSON(window, pathfile : str):
             # !! Verification (OK)
             plt.title("ECG")
             plt.plot(np.arange(0, duration, ecg_step), ecg_values) # ==> OK
-            plt.show()
+            plt.show(block = True)
             """
 
 
@@ -531,7 +367,7 @@ def openJSON(window, pathfile : str):
             for item in scg_values:
                 plt.title("SCG channel_"+str(count)+ " ("+ scg_channels[count]+")")
                 plt.plot(np.arange(0, duration, scg_step), item)
-                plt.show()
+                plt.show(block = True)
                 count = count+1
             """
 
@@ -572,7 +408,6 @@ def openJSON(window, pathfile : str):
 
     
     elif 'data' in list(contents.keys()):
-        print("case last")
         contents = contents['data']
     
     
@@ -745,15 +580,15 @@ def openJSON(window, pathfile : str):
             
         #nbrSamples_SCG = dataSCG[0]['content']['en']['numberValue'] # (6104samples)
         #duration_SCG = dataSCG[2]['content']['en']['measureValue']['value'] # 60s
-        meta = {}
         
-        meta['nameFile'] = lastName + " " + str(dateData)[6:8]+str(dateData)[4:6]+str(dateData)[:4] + " "+str(dateData)[8:]
+        toret['Name'] = firstName
+        toret['Surname'] = lastName
+        toret['Date'] = dateData
         
-        meta['Sex[m/f]'] = patientSex
-        meta['Weight[kg]'] = patientWeight
-        meta['Height[cm]'] = patientTall
-        meta['Age[y]'] = patientAge
-        toret["meta"] = meta
+        toret['Sex[m/f]'] = patientSex
+        toret['Weight[kg]'] = patientWeight
+        toret['Height[cm]'] = patientTall
+        toret['Age[y]'] = patientAge
         
         ecgDict = {}
         ecgDict['sfreq[Hz]'] = nbrSamples_ECG/duration_ECG
