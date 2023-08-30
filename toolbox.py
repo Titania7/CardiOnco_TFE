@@ -795,7 +795,11 @@ def khosrow_khavar2015(cleanAllLinGraphs, fs, show = False):
     time = np.arange(0, len(cleanAllLinGraphs[0])*step, step)
     while len(time)>len(cleanAllLinGraphs[0]):
         time = np.delete(time, -1)
-
+        
+    # for graph in cleanAllLinGraphs :
+    #     plt.plot(graph, color = "grey", alpha = 0.3)
+    # plt.show()
+    
     ao_HFenvelope = np.array([])
     for vect in cleanAllLinGraphs:
         # Cut the frequencies between 4-40 Hz
@@ -805,28 +809,31 @@ def khosrow_khavar2015(cleanAllLinGraphs, fs, show = False):
     
         envHF = np.abs(hilbert(vectHF))
         
+        
         maxSearch = 0.2 #s
-        peak_env = np.argmax(envHF[:int(np.round(maxSearch*fs))])
-        
-        windowSearch = int(np.round(0.025*fs)) #ms
-        ao = np.argmax(vect[peak_env-windowSearch:peak_env+windowSearch])
-        ao = ao+peak_env-windowSearch
-        
-        
-        if show == True :
-            plt.plot(time, vect, label = "Raw ACC")
-            plt.plot(time[ao], vect[ao],'o', color = "blue", label = "AO")
-            #plt.plot(time, vectLF, label = "LFACC")
-            plt.plot(time, vectHF, label = "HFACC")
-            plt.plot(time, envHF, color = "red", label = "HFENV")
-            plt.plot(time[peak_env], envHF[peak_env], 'o', color = "red", label = "HFACC peak")
-            plt.axvspan(0.0,0.2, alpha=0.3, color='yellow', label="Search zone HFACC peak")
-            plt.axvspan(time[peak_env] - 0.025, time[peak_env]+0.025, alpha=0.5, color='lightblue', label="Where is AO")
-            plt.legend(loc = "best")
-            plt.show()
-        
-        ao_HFenvelope = np.append(ao_HFenvelope, ao)
+        if len(envHF[:int(np.round(maxSearch*fs))]) > 1 :
+            peak_env = np.argmax(envHF[:int(np.round(maxSearch*fs))])
+            
+            windowSearch = int(np.round(0.025*fs)) #ms
+            if len(vect[peak_env-windowSearch:peak_env+windowSearch]) > 1 :
+                ao = np.argmax(vect[peak_env-windowSearch:peak_env+windowSearch])
+                ao = ao+peak_env-windowSearch
+                
+                if show == True :
+                    plt.plot(time, vect, label = "Raw ACC")
+                    plt.plot(time[ao], vect[ao],'o', color = "blue", label = "AO")
+                    #plt.plot(time, vectLF, label = "LFACC")
+                    plt.plot(time, vectHF, label = "HFACC")
+                    plt.plot(time, envHF, color = "red", label = "HFENV")
+                    plt.plot(time[peak_env], envHF[peak_env], 'o', color = "red", label = "HFACC peak")
+                    plt.axvspan(0.0,0.2, alpha=0.3, color='yellow', label="Search zone HFACC peak")
+                    plt.axvspan(time[peak_env] - 0.025, time[peak_env]+0.025, alpha=0.5, color='lightblue', label="Where is AO")
+                    plt.legend(loc = "best")
+                    plt.show()
+                
+                ao_HFenvelope = np.append(ao_HFenvelope, ao)
     ao_HFenvelope = ao_HFenvelope.astype(int)
+    print("HERE IS THE HFACC RESULT : ",ao_HFenvelope)
     return ao_HFenvelope
 
 def yang2017(cleanXrot, cleanYrot, cleanZrot, zLin, fs, show = False):

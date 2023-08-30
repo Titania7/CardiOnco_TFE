@@ -431,33 +431,6 @@ class DisplMeanWindow(QMainWindow):
                 elif infoVect[i][0]._title == "BPleg":
                     bpLeg = infoVect[i][0]
                     bpLeg._y = butterCutPass(bpLeg, 4, [1,bpLeg._samplerate/2-10])
-                    """
-                    # We get the BPleg onsets on the whole graph then on the timelim if non-successful
-                    try:
-                        onsBPLeg, bpLegY = getBpOnsets_tang(bpLeg, r_pML, filt = True, show = False)
-                        print("BPleg whole graph onset detection with tangent")
-                    except:
-                        try:
-                            onsBPLeg, bpLegY = getBpOnsets_2dDeriv(bpLeg, r_pML, filt = True, show = False)
-                            print("BPleg whole graph onset detection with 2d deriv")
-                        except:
-                            try:
-                                onsBPLeg, bpLegY = getBpOnsets_tang(bpLeg, r_pML, lims=timelim, filt = True, show = False)
-                                print("BPleg partial graph onset detection with tangent")
-                                legCut = True
-                            except:
-                                try:
-                                    onsBPLeg, bpLegY = getBpOnsets_2dDeriv(bpLeg, r_pML, lims=timelim, filt = True, show = False)
-                                    print("BPleg partial graph onset detection with 2d deriv")
-                                    legCut = True
-                                except:
-                                    DialogPopup("Error", "The BP onsets detection failed for BPleg").exec()
-                            
-                            startindex = int(timelim[0]*bpLeg._samplerate)
-                            stopindex = int(timelim[1]*bpLeg._samplerate)
-                            onsBPLeg[0] = list(np.array(onsBPLeg[0])-startindex)
-                            onsBPLeg[1] = list(np.array(onsBPLeg[1])-timelim[0])
-                    """
                 elif infoVect[i][0]._title == "BParm":
                     orig_bpArm = infoVect[i][0]
                     # We take into account the time limitations asked by the user for this one
@@ -470,23 +443,6 @@ class DisplMeanWindow(QMainWindow):
                     self.bpArm = SingleGraph(orig_bpArm._x[startindex:stopindex], orig_bpArm._y[startindex:stopindex], orig_bpArm._title, orig_bpArm._samplerate, orig_bpArm._step)
                     self.bpArm._y = butterCutPass(self.bpArm, 4, [1,self.bpArm._samplerate/2-10])
 
-                    
-                    """ 
-                    # We get the BParm onsets on the time limitations given by the user
-                    try:
-                        onsBPArm, bpArmY = getBpOnsets_tang(orig_bpArm, r_pML, lims=timelim, filt = True, show = False)    
-                        print("BParm partial graph onset detection with tangent")
-                    except:
-                        try:
-                            onsBPArm, bpArmY = getBpOnsets_2dDeriv(orig_bpArm, r_pML, lims=timelim, filt = True, show = False)
-                            print("BParm partial graph onset detection with 2d deriv")
-                        except: 
-                            DialogPopup("Error", "The BP onsets detection failed for the given time limits of BParm").exec()
-
-                        
-                    onsBPArm[0] = list(np.array(onsBPArm[0])-startindex)
-                    onsBPArm[1] = list(np.array(onsBPArm[1])-timelim[0])
-                    """
                 
                 elif infoVect[i][0]._title == "x_scgLin[m/s^2]":
                     xlinSCG = infoVect[i][0]
@@ -554,32 +510,6 @@ class DisplMeanWindow(QMainWindow):
         for i, vect in enumerate(mean_bpLeg):
             while len(mean_bpLeg[i])>minsize:
                 mean_bpLeg[i] = np.delete(mean_bpLeg[i],-1)
-        
-                
-        
-        """
-        p_onML0 = [p_onML[0][i] for i in range(len(p_onML[0])) if i in authorizedList]
-        p_onML1 = [p_onML[1][i] for i in range(len(p_onML[1])) if i in authorizedList]
-        p_onML = [p_onML0, p_onML1]
-        p_pML0 = [p_pML[0][i] for i in range(len(p_pML[0])) if i in authorizedList]
-        p_pML1 = [p_pML[1][i] for i in range(len(p_pML[1])) if i in authorizedList]
-        p_pML = [p_pML0, p_pML1]
-        q_pML0 = [q_pML[0][i] for i in range(len(q_pML[0])) if i in authorizedList]
-        q_pML1 = [q_pML[1][i] for i in range(len(q_pML[1])) if i in authorizedList]
-        q_pML = [q_pML0, q_pML1]
-        r_pML0 = [r_pML[0][i] for i in range(len(r_pML[0])) if i in authorizedList]
-        r_pML1 = [r_pML[1][i] for i in range(len(r_pML[1])) if i in authorizedList]
-        r_pML = [r_pML0, r_pML1]
-        s_pML0 = [s_pML[0][i] for i in range(len(s_pML[0])) if i in authorizedList]
-        s_pML1 = [s_pML[1][i] for i in range(len(s_pML[1])) if i in authorizedList]
-        s_pML = [s_pML0, s_pML1]
-        t_pML0 = [t_pML[0][i] for i in range(len(t_pML[0])) if i in authorizedList]
-        t_pML1 = [t_pML[1][i] for i in range(len(t_pML[1])) if i in authorizedList]
-        t_pML = [t_pML0, t_pML1]
-        t_offML0 = [t_offML[0][i] for i in range(len(t_offML[0])) if i in authorizedList]
-        t_offML1 = [t_offML[1][i] for i in range(len(t_offML[1])) if i in authorizedList]
-        t_offML = [t_offML0, t_offML1]
-        """
         
         # Definition of the minimum length to take into account the mean graphs
         alldiff = []
@@ -702,6 +632,9 @@ class DisplMeanWindow(QMainWindow):
         relAO_4090 = getAO_4090ms(allVectlin, linSCG._samplerate, show = False)
         relAO_2dPeak = getAO_2pAfter40ms(allVectlin, linSCG._samplerate, show = False)
         
+        ao_HFACC_zLin = khosrow_khavar2015(all_zlin, zlinSCG._samplerate, show = False)
+        ao_HFACC_yRot = khosrow_khavar2015(all_yrot, yrotSCG._samplerate, show = False)
+        
         def removeOutliers(mydata):
             # Réorganiser les données en une matrice 2D
             data = np.array(mydata[1]).reshape(-1, 1)
@@ -758,6 +691,7 @@ class DisplMeanWindow(QMainWindow):
         # i is the index of the current R peak
         
         for i in range(len(listToDisplay)) : # passera 6 fois (1 pour chaque graphe moyenné)
+            print(corresponding[i]._title)
             graphWidget = pg.PlotWidget()              
             countTrace = 0
             for trace in listToDisplay[i]: # Passera 71 fois (1 pour chaque morceau du graphe courant)
@@ -779,8 +713,7 @@ class DisplMeanWindow(QMainWindow):
                     graphWidget.addItem(points4090)
                     points2dP = pg.ScatterPlotItem(x=[x[point_2dpeak]], y=[trace[point_2dpeak]], brush=turquoise, pen=None)
                     graphWidget.addItem(points2dP)
-                  
-                            
+                
                 countTrace += 1
                     
             #%% Add the mean traces of the SCGs in red
@@ -803,9 +736,7 @@ class DisplMeanWindow(QMainWindow):
                 points2 = pg.ScatterPlotItem(x=[x[int(np.round(np.mean(relAO_2dPeak)))]], y=[meanAllvect[int(np.round(np.mean(relAO_2dPeak)))]], brush = "turquoise", pen=None)
                 graphWidget.addItem(points2) 
             
-            
-                
-                
+  
             elif corresponding[i]._title == "rot_SCGvect[deg/s]":
                 posStart = x[0]
                 posStop = x[-1]
@@ -834,7 +765,7 @@ class DisplMeanWindow(QMainWindow):
                 graphWidget.setXLink(refPlotWidget)
             
             self.layout.addWidget(graphWidget)
-                
+        
                 
             if corresponding[i]._title == "lin_SCGvect[m/s^2]":
                 legend = QLabel("<font color='magenta'>●</font> AO detected 40-90 ms ; <font color='turquoise'>●</font> AO detected as 2d peak")
@@ -860,7 +791,7 @@ class DisplMeanWindow(QMainWindow):
                 self.layout.addWidget(self.yLin_label)
                 self.yLinCursor.sigPositionChanged.connect(self.manualAOylin)
                 
-                self.zLinCursor = self.displaySCGGraph(all_zlin, zlinSCG)
+                self.zLinCursor = self.displaySCGGraph(all_zlin, zlinSCG, dots = ao_HFACC_zLin)
                 self.zLin_label = QLabel("")
                 self.layout.addWidget(self.zLin_label)
                 self.zLinCursor.sigPositionChanged.connect(self.manualAOzlin)
@@ -875,7 +806,7 @@ class DisplMeanWindow(QMainWindow):
                  self.layout.addWidget(self.xRot_label)
                  self.xRotCursor.sigPositionChanged.connect(self.manualAOxrot)
                  
-                 self.yRotCursor = self.displaySCGGraph(all_yrot, yrotSCG)
+                 self.yRotCursor = self.displaySCGGraph(all_yrot, yrotSCG, dots = ao_HFACC_yRot)
                  self.yRot_label = QLabel("")
                  self.layout.addWidget(self.yRot_label)
                  self.yRotCursor.sigPositionChanged.connect(self.manualAOyrot)
@@ -912,16 +843,12 @@ class DisplMeanWindow(QMainWindow):
         self.stdR_AO_4090 = np.std(relAO_4090*linSCG._step)
         self.lenAO_4090 = len(relAO_4090)
         text = " Delay R-AO (40-90 ms technique): "+str(np.round(self.meanR_AO_4090,3))+" ± "+str(np.round(self.stdR_AO_4090,3))+" s (N = "+str(self.lenAO_4090)+")"
-        self.pwv_4090 = (0.8*meta[-1])/(self.meanR_Leg - self.meanR_AO_4090)
-        text +=  "     => afPWV = "+ str(np.round(self.pwv_4090 ,3))+" m/s"
         self.ao_4090_label.setText(text)
         
         self.meanR_AO_2dP = np.round(np.mean(relAO_2dPeak))*linSCG._step
         self.stdR_AO_2dP = np.std(relAO_2dPeak*linSCG._step) 
         self.lenAO_2dP = len(relAO_2dPeak)
         text = " Delay R-AO (2d peak technique): "+str(np.round(self.meanR_AO_2dP,3))+" ± "+str(np.round(self.stdR_AO_2dP,3))+" s (N = "+str(self.lenAO_2dP)+")"
-        self.pwv_2dP = (0.8*meta[-1])/(self.meanR_Leg - self.meanR_AO_2dP)
-        text +=  "     => afPWV = "+ str(np.round(self.pwv_2dP ,3))+" m/s"
         self.aO_2dP_label.setText(text)
         
         #%%
@@ -933,7 +860,10 @@ class DisplMeanWindow(QMainWindow):
     
     #%% Useful functions
     
-    def displaySCGGraph(self, graph, corresp):
+    def displaySCGGraph(self, graph, corresp, dots = []):
+        
+        vert = QtGui.QBrush(QtGui.QColor(0, 153, 0, 85)) #Toff
+        
         graphWidget = pg.PlotWidget()
         for trace in graph:
             x = np.arange(0, len(trace)*corresp._step, corresp._step)
@@ -941,6 +871,13 @@ class DisplMeanWindow(QMainWindow):
                 x=np.delete(x,-1)
             courbe = graphWidget.plot(x, trace, pen="grey")
             courbe.setOpacity(0.3)
+        
+        if not dots == []:
+            for i, point in enumerate(dots) :
+                points = pg.ScatterPlotItem(x=[x[point]], y=[graph[i][point]], brush=vert, pen=None)
+                graphWidget.addItem(points)
+            
+            
         courbe = graphWidget.plot(x, np.mean(np.array(graph), axis = 0), pen="magenta")
 
         graphWidget.setTitle("Mean "+corresp._title)
@@ -955,6 +892,32 @@ class DisplMeanWindow(QMainWindow):
         graphWidget.addItem(cursor)
         
         self.layout.addWidget(graphWidget)
+        
+        if corresp._title == "z_scgLin[m/s^2]":
+            
+            self.ao_HFACCzLin_label = QLabel("")
+            self.layout.addWidget(self.ao_HFACCzLin_label)
+            
+            dots = np.array(dots)
+            self.meanR_AO_HFACCzLin = np.mean(dots)*corresp._step
+            self.stdR_AO_HFACCzLin = np.std(dots*corresp._step)
+            self.lenAO_HFACCzLin = len(dots)
+            text = " Delay R-AO (HFACC_zLin technique): "+str(np.round(self.meanR_AO_HFACCzLin,3))+" ± "+str(np.round(self.stdR_AO_HFACCzLin,3))+" s (N = "+str(self.lenAO_HFACCzLin)+")"
+            self.ao_HFACCzLin_label.setText(text)
+            self.layout.addWidget(self.ao_HFACCzLin_label)
+        
+        elif corresp._title == "y_scgRot[deg/s]":
+            
+            self.ao_HFACCyRot_label = QLabel("")
+            self.layout.addWidget(self.ao_HFACCyRot_label)
+            
+            dots = np.array(dots)
+            self.meanR_AO_HFACCyRot = np.mean(dots)*corresp._step
+            self.stdR_AO_HFACCyRot = np.std(dots*corresp._step)
+            self.lenAO_HFACCyRot = len(dots)
+            text = " Delay R-AO (HFACC_yRot technique): "+str(np.round(self.meanR_AO_HFACCyRot,3))+" ± "+str(np.round(self.stdR_AO_HFACCyRot,3))+" s (N = "+str(self.lenAO_HFACCyRot)+")"
+            self.ao_HFACCyRot_label.setText(text)
+            self.layout.addWidget(self.ao_HFACCyRot_label)
         
         return cursor
         
@@ -997,47 +960,39 @@ class DisplMeanWindow(QMainWindow):
     
     def manualAOxlin(self):
         newPosition = self.xLinCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.xLin_label.setText(f" Manual AO (xlinSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.xLin_label.setText(f" Manual AO (xlinSCG) : "+str(np.round(newPosition,3))+" s")
         
     def manualAOylin(self):
         newPosition = self.yLinCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.yLin_label.setText(f" Manual AO (ylinSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.yLin_label.setText(f" Manual AO (ylinSCG) : "+str(np.round(newPosition,3))+" s")
 
     def manualAOzlin(self):
         newPosition = self.zLinCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.zLin_label.setText(f" Manual AO (zlinSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.zLin_label.setText(f" Manual AO (zlinSCG) : "+str(np.round(newPosition,3))+" s")
     
     
     def manualAOlin(self):
         newPosition = self.aolinCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.manualAOlin_label.setText(f" Manual AO (linSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.manualAOlin_label.setText(f" Manual AO (linSCG) : "+str(np.round(newPosition,3))+" s")
     
     
     def manualAOxrot(self):
         newPosition = self.xRotCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.xRot_label.setText(f" Manual AO (xrotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.xRot_label.setText(f" Manual AO (xrotSCG) : "+str(np.round(newPosition,3))+" s")
         
     def manualAOyrot(self):
         newPosition = self.yRotCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.yRot_label.setText(f" Manual AO (yrotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.yRot_label.setText(f" Manual AO (yrotSCG) : "+str(np.round(newPosition,3))+" s")
 
     def manualAOzrot(self):
         newPosition = self.zRotCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.zRot_label.setText(f" Manual AO (zrotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.zRot_label.setText(f" Manual AO (zrotSCG) : "+str(np.round(newPosition,3))+" s")
     
     
     
     def manualAOrot(self):
         newPosition = self.aorotCursor.pos().x()
-        newPWV = (0.8*self.meta[-1])/(self.meanR_Leg - newPosition)
-        self.manualAOrot_label.setText(f" Manual AO (rotSCG) : "+str(np.round(newPosition,3))+" s     => afPWV = "+str(np.round(newPWV, 3))+" m/s")
+        self.manualAOrot_label.setText(f" Manual AO (rotSCG) : "+str(np.round(newPosition,3))+" s")
     
     def addBP(self, bpSC, mean_bp, onsBPrel):
         
