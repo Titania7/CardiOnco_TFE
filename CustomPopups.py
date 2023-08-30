@@ -409,15 +409,20 @@ class DisplMeanWindow(QMainWindow):
         
         
         #%% get the peaks for both ECGs
-        
-        [p_pML, q_pML, r_pML, s_pML, t_pML, p_onML, t_offML] = pqrstMAT
-        [p_pJSON, q_pJSON, r_pJSON, s_pJSON, t_pJSON, p_onJSON, t_offJSON] = pqrstJSON
+        try:
+            [p_pML, q_pML, r_pML, s_pML, t_pML, p_onML, t_offML] = pqrstMAT
+        except :
+            DialogPopup("Error", "Could not find MatLab ECG").exec()
+        try :
+            [p_pJSON, q_pJSON, r_pJSON, s_pJSON, t_pJSON, p_onJSON, t_offJSON] = pqrstJSON
+        except:
+            DialogPopup("Error", "Could not find json ECG").exec()
         #print(len(r_pML[0]), len(r_pJSON[0]))
        
         #%% Retrieval + identification of all the tracks available
         startindex = timelim[0]
         stopindex = timelim[1]
-
+        
         legCut = False
         for i in range(len(infoVect)):
             if infoVis[i] == True:
@@ -461,110 +466,127 @@ class DisplMeanWindow(QMainWindow):
                     linSCG = infoVect[i][0]
                 elif infoVect[i][0]._title == "rot_SCGvect[deg/s]":
                     rotSCG = infoVect[i][0]
-
+        
+        try:
+            if not "lin_SCGvect[m/s^2]" in [infoVect[i][0]._title for i in range(len(infoVect))]:
+                linSCGy = np.sqrt(xlinSCG._y**2+ylinSCG._y**2+zlinSCG._y**3)
+                linSCG = SingleGraph(xlinSCG._y, linSCGy, title = 'lin_SCGvect[m/s^2]', samplerate = xlinSCG._samplerate, step = xlinSCG._step)
+                rotSCGy = np.sqrt(xrotSCG._y**2+yrotSCG._y**2+zrotSCG._y**3)
+                rotSCG = SingleGraph(xrotSCG._y, rotSCGy, title = 'rot_SCGvect[deg/s]', samplerate = xrotSCG._samplerate, step = xrotSCG._step)
+        except : 
+            print("No SCG again")
         #%% prepare the lists of arrays for the mean display
-        
-        mean_ecgML = []
-        mean_bpLeg = []
-        mean_bpArm = []
-        if not self.bpAo == None :
-            mean_bpAo = []
-        
-        authorizedList = []
-        
-        # Go through the ecg_indexes of the r peaks (matlab graphs)
-        for i in range(len(r_pML[0])-1):
-            #print(startindex, r_pML[1][i]*self.bpArm._samplerate, r_pML[1][i+1]*self.bpArm._samplerate, len(self.bpArm._x))
-            
-            if r_pML[0][i+1] < len(ecgML._x):
-                y_ecgML = ecgML._y[r_pML[0][i]:r_pML[0][i+1]]
-                mean_ecgML.append(y_ecgML)
-
-                authorizedList.append(i)
-                
-            if r_pML[0][i+1] < len(bpLeg._x):
-                y_bpLeg = bpLeg._y[r_pML[0][i]:r_pML[0][i+1]]
-                mean_bpLeg.append(y_bpLeg)
-            
+        try:
+            mean_ecgML = []
+            mean_bpLeg = []
+            mean_bpArm = []
             if not self.bpAo == None :
-                y_bpAo = self.bpAo._y[r_pML[0][i]:r_pML[0][i+1]]
-                mean_bpAo.append(y_bpAo)
+                mean_bpAo = []
             
-            if r_pML[0][i]-startindex> 0 and r_pML[0][i+1]-startindex < len(self.bpArm._x):
-                #print("I'm in !")
-                y_bpArm = self.bpArm._y[r_pML[0][i]-startindex:r_pML[0][i+1]-startindex]
-                mean_bpArm.append(y_bpArm)
+            authorizedList = []
             
-        
-        minsize = np.min([len(vect) for vect in mean_bpArm])
-        for i, vect in enumerate(mean_bpArm):
-            while len(mean_bpArm[i])>minsize:
-                mean_bpArm[i] = np.delete(mean_bpArm[i],-1)
+            # Go through the ecg_indexes of the r peaks (matlab graphs)
+            for i in range(len(r_pML[0])-1):
+                #print(startindex, r_pML[1][i]*self.bpArm._samplerate, r_pML[1][i+1]*self.bpArm._samplerate, len(self.bpArm._x))
                 
-        if not self.bpAo == None :
-            for i, vect in enumerate(mean_bpAo):
-                while len(mean_bpAo[i])>minsize:
-                    mean_bpAo[i] = np.delete(mean_bpAo[i],-1)
+                if r_pML[0][i+1] < len(ecgML._x):
+                    y_ecgML = ecgML._y[r_pML[0][i]:r_pML[0][i+1]]
+                    mean_ecgML.append(y_ecgML)
+    
+                    authorizedList.append(i)
+                    
+                if r_pML[0][i+1] < len(bpLeg._x):
+                    y_bpLeg = bpLeg._y[r_pML[0][i]:r_pML[0][i+1]]
+                    mean_bpLeg.append(y_bpLeg)
                 
-        minsize  = np.min([len(vect) for vect in mean_bpLeg])
-        for i, vect in enumerate(mean_bpLeg):
-            while len(mean_bpLeg[i])>minsize:
-                mean_bpLeg[i] = np.delete(mean_bpLeg[i],-1)
+                if not self.bpAo == None :
+                    y_bpAo = self.bpAo._y[r_pML[0][i]:r_pML[0][i+1]]
+                    mean_bpAo.append(y_bpAo)
+                
+                if r_pML[0][i]-startindex> 0 and r_pML[0][i+1]-startindex < len(self.bpArm._x):
+                    #print("I'm in !")
+                    y_bpArm = self.bpArm._y[r_pML[0][i]-startindex:r_pML[0][i+1]-startindex]
+                    mean_bpArm.append(y_bpArm)
+                
+            
+            minsize = np.min([len(vect) for vect in mean_bpArm])
+            for i, vect in enumerate(mean_bpArm):
+                while len(mean_bpArm[i])>minsize:
+                    mean_bpArm[i] = np.delete(mean_bpArm[i],-1)
+                    
+            if not self.bpAo == None :
+                for i, vect in enumerate(mean_bpAo):
+                    while len(mean_bpAo[i])>minsize:
+                        mean_bpAo[i] = np.delete(mean_bpAo[i],-1)
+                    
+            minsize  = np.min([len(vect) for vect in mean_bpLeg])
+            for i, vect in enumerate(mean_bpLeg):
+                while len(mean_bpLeg[i])>minsize:
+                    mean_bpLeg[i] = np.delete(mean_bpLeg[i],-1)
+        except:
+            DialogPopup("Warning", "No blood pressures found").exec()
         
         # Definition of the minimum length to take into account the mean graphs
-        alldiff = []
-        for i in range(len(r_pJSON[0])-1):
-            # conversion of the indexes
-            minIndex_scg = index_conv(index=r_pJSON[0][i], scg_fs=linSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
-            maxIndex_scg = index_conv(index=r_pJSON[0][i+1], scg_fs=linSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
-            diff = maxIndex_scg-minIndex_scg
-            alldiff.append(diff)
-        length = np.min(alldiff)
-        
-        mean_ecgJSON = []
-        all_xlin = []
-        all_ylin = []
-        all_zlin = []
-        all_xrot = []
-        all_yrot = []
-        all_zrot = []
-        # Stock all the in-between graphs (and prepare SCG for average graph)
-        allVectlin = []
-        allVectrot = []
-        
-        
-        # Go through the ecg_indexes of the r peaks
-        for i in range(len(r_pJSON[0])-1):
-            # We align every graph on the R peak
-            y_ecgJSON = ecgJSON._y[r_pJSON[0][i]:r_pJSON[0][i+1]]
+        try:
+            alldiff = []
             
-            # conversion of the indexes
-            minIndex_scg = index_conv(index=r_pJSON[0][i], scg_fs=linSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
-            maxIndex_scg = index_conv(index=r_pJSON[0][i+1], scg_fs=rotSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
+            for i in range(len(r_pJSON[0])-1):
+                # conversion of the indexes
+                minIndex_scg = index_conv(index=r_pJSON[0][i], scg_fs=xlinSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
+                maxIndex_scg = index_conv(index=r_pJSON[0][i+1], scg_fs=xlinSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
+                diff = maxIndex_scg-minIndex_scg
+                alldiff.append(diff)
             
-            #print(r_pJSON[0][i], minIndex_scg, ":", r_pJSON[0][i+1], maxIndex_scg)
+            length = np.min(alldiff)
             
-            y_xLin = xlinSCG._y[minIndex_scg:maxIndex_scg]
-            y_xRot = xrotSCG._y[minIndex_scg:maxIndex_scg]
-            y_yLin = ylinSCG._y[minIndex_scg:maxIndex_scg]
-            y_yRot = yrotSCG._y[minIndex_scg:maxIndex_scg]
-            y_zLin = zlinSCG._y[minIndex_scg:maxIndex_scg]
-            y_zRot = zrotSCG._y[minIndex_scg:maxIndex_scg]
-            y_vectLin = linSCG._y[minIndex_scg:maxIndex_scg]
-            y_vectRot = rotSCG._y[minIndex_scg:maxIndex_scg]
+            mean_ecgJSON = []
+            all_xlin = []
+            all_ylin = []
+            all_zlin = []
+            all_xrot = []
+            all_yrot = []
+            all_zrot = []
+            # Stock all the in-between graphs (and prepare SCG for average graph)
+            allVectlin = []
+            allVectrot = []
+            
+            
+            # Go through the ecg_indexes of the r peaks
+            for i in range(len(r_pJSON[0])-1):
 
-            mean_ecgJSON.append(y_ecgJSON)
-            
-            # Sum of the graphs in each cycle
-            all_xlin.append(y_xLin[0:length-1])
-            all_ylin.append(y_yLin[0:length-1])
-            all_zlin.append(y_zLin[0:length-1])
-            all_xrot.append(y_xRot[0:length-1])
-            all_yrot.append(y_yRot[0:length-1])
-            all_zrot.append(y_zRot[0:length-1])
-            allVectlin.append(y_vectLin[0:length-1])
-            allVectrot.append(y_vectRot[0:length-1])
-        
+                # We align every graph on the R peak
+                y_ecgJSON = ecgJSON._y[r_pJSON[0][i]:r_pJSON[0][i+1]]
+                
+                # conversion of the indexes
+                minIndex_scg = index_conv(index=r_pJSON[0][i], scg_fs=linSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
+                maxIndex_scg = index_conv(index=r_pJSON[0][i+1], scg_fs=rotSCG._samplerate , ecg_fs=ecgJSON._samplerate, indexType="Ecg2scg")
+                
+                #print(r_pJSON[0][i], minIndex_scg, ":", r_pJSON[0][i+1], maxIndex_scg)
+                
+                y_xLin = xlinSCG._y[minIndex_scg:maxIndex_scg]
+                y_xRot = xrotSCG._y[minIndex_scg:maxIndex_scg]
+                y_yLin = ylinSCG._y[minIndex_scg:maxIndex_scg]
+                y_yRot = yrotSCG._y[minIndex_scg:maxIndex_scg]
+                y_zLin = zlinSCG._y[minIndex_scg:maxIndex_scg]
+                y_zRot = zrotSCG._y[minIndex_scg:maxIndex_scg]
+                y_vectLin = linSCG._y[minIndex_scg:maxIndex_scg]
+                y_vectRot = rotSCG._y[minIndex_scg:maxIndex_scg]
+
+
+                mean_ecgJSON.append(y_ecgJSON)
+                
+                # Sum of the graphs in each cycle
+                all_xlin.append(y_xLin[0:length-1])
+                all_ylin.append(y_yLin[0:length-1])
+                all_zlin.append(y_zLin[0:length-1])
+                all_xrot.append(y_xRot[0:length-1])
+                all_yrot.append(y_yRot[0:length-1])
+                all_zrot.append(y_zRot[0:length-1])
+                allVectlin.append(y_vectLin[0:length-1])
+                allVectrot.append(y_vectRot[0:length-1])
+
+        except:
+            DialogPopup("Warning", "No SCG found").exec()
 
         
         #%% Rejection of all the aberrant graphs for the superposed graphs
@@ -577,63 +599,75 @@ class DisplMeanWindow(QMainWindow):
             
             return new
 
+        try :
+            self.addECG_centerR(ecgML)
+            self.printHRV(ecgML, pqrstMAT)
+            
+            try: mean_bpLeg, idx_bpLeg = cleanLOF(mean_bpLeg, 10, 0.5)
+            except: print("Rejection of outliers graphs for bpLeg unsuccessful")
+            
+            # Does not work with the bpArm if it is too short
+            try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.4)
+            except: print("Rejection of outliers graphs for bpArm unsuccessful")
+            
+            if not self.bpAo == None :
+                try: mean_bpAo, idx_bpAo = cleanLOF(mean_bpAo, 10, 0.5)
+                except: print("Rejection of outliers graphs for bpAo unsuccessful")
+        except:
+            print("No MatLab file found")
+        
+        try :
+            self.addECG_centerR(ecgJSON)
+            self.printHRV(ecgJSON, pqrstJSON)
+            
 
-        self.addECG_centerR(ecgML)
-        self.printHRV(ecgML, pqrstMAT)
-        
-        try: mean_bpLeg, idx_bpLeg = cleanLOF(mean_bpLeg, 10, 0.5)
-        except: print("Rejection of outliers graphs for bpLeg unsuccessful")
-        
-        # Does not work with the bpArm if it is too short
-        try: mean_bpArm, idx_bpArm = cleanLOF(mean_bpArm, 1, 0.4)
-        except: print("Rejection of outliers graphs for bpArm unsuccessful")
-        
-        if not self.bpAo == None :
-            try: mean_bpAo, idx_bpAo = cleanLOF(mean_bpAo, 10, 0.5)
-            except: print("Rejection of outliers graphs for bpAo unsuccessful")
-        
-        
-        self.addECG_centerR(ecgJSON)
-        self.printHRV(ecgJSON, pqrstJSON)
-      
-        try: allVectlin, idx_Vectlin = cleanLOF(allVectlin)
-        except: allVectlin = self.all_SameLen(allVectlin) ; print("Rejection of outliers graphs for scgLin unsuccessful")
-        
-        try: allVectrot, idx_Vectrot = cleanLOF(allVectrot)
-        except: allVectrot = self.all_SameLen(allVectrot) ; print("Rejection of outliers graphs for scgRot unsuccessful")
-        
-        
-        try: all_xlin, idx_xLin = cleanLOF(all_xlin)
-        except: all_xlin = self.all_SameLen(all_xlin) ; print("Rejection of outliers graphs for xLin unsuccessful")
-        
-        try: all_ylin, idx_yLin = cleanLOF(all_ylin)
-        except: all_ylin = self.all_SameLen(all_ylin) ; print("Rejection of outliers graphs for yLin unsuccessful")
-        
-        try: all_zlin, idx_zLin = cleanLOF(all_zlin)
-        except: all_zlin = self.all_SameLen(all_zlin) ; print("Rejection of outliers graphs for zLin unsuccessful")
-        
-        try: all_xrot, idx_xRot = cleanLOF(all_xrot)
-        except: all_xrot = self.all_SameLen(all_xrot) ; print("Rejection of outliers graphs for xRot unsuccessful")
-        
-        try: all_yrot, idx_yRot = cleanLOF(all_yrot)
-        except: all_yrot = self.all_SameLen(all_yrot) ; print("Rejection of outliers graphs for yRot unsuccessful")
-        
-        try: all_zrot, idx_zRot = cleanLOF(all_zrot)
-        except: all_zrot = self.all_SameLen(all_zrot) ; print("Rejection of outliers graphs for zRot unsuccessful")
+            try: allVectlin, idx_Vectlin = cleanLOF(allVectlin)
+            except: allVectlin = self.all_SameLen(allVectlin) ; print("Rejection of outliers graphs for scgLin unsuccessful")
+            
+            try: allVectrot, idx_Vectrot = cleanLOF(allVectrot)
+            except: allVectrot = self.all_SameLen(allVectrot) ; print("Rejection of outliers graphs for scgRot unsuccessful")
 
+            
+            try: all_xlin, idx_xLin = cleanLOF(all_xlin)
+            except: all_xlin = self.all_SameLen(all_xlin) ; print("Rejection of outliers graphs for xLin unsuccessful")
+            
+            try: all_ylin, idx_yLin = cleanLOF(all_ylin)
+            except: all_ylin = self.all_SameLen(all_ylin) ; print("Rejection of outliers graphs for yLin unsuccessful")
+            
+            try: all_zlin, idx_zLin = cleanLOF(all_zlin)
+            except: all_zlin = self.all_SameLen(all_zlin) ; print("Rejection of outliers graphs for zLin unsuccessful")
+            
+            try: all_xrot, idx_xRot = cleanLOF(all_xrot)
+            except: all_xrot = self.all_SameLen(all_xrot) ; print("Rejection of outliers graphs for xRot unsuccessful")
+            
+            try: all_yrot, idx_yRot = cleanLOF(all_yrot)
+            except: all_yrot = self.all_SameLen(all_yrot) ; print("Rejection of outliers graphs for yRot unsuccessful")
+            
+            try: all_zrot, idx_zRot = cleanLOF(all_zrot)
+            except: all_zrot = self.all_SameLen(all_zrot) ; print("Rejection of outliers graphs for zRot unsuccessful")
         
         
         
-        #%% Computation of the mean SCG graphs values
         
-        meanAllvect = np.mean(allVectlin, axis=0)
-        meanAllvectrot = np.mean(allVectrot, axis=0)
-        
-        relAO_4090 = getAO_4090ms(allVectlin, linSCG._samplerate, show = False)
-        relAO_2dPeak = getAO_2pAfter40ms(allVectlin, linSCG._samplerate, show = False)
-        
-        ao_HFACC_zLin = khosrow_khavar2015(all_zlin, zlinSCG._samplerate, show = False)
-        ao_HFACC_yRot = khosrow_khavar2015(all_yrot, yrotSCG._samplerate, show = False)
+            #%% Computation of the mean SCG graphs values
+            
+            meanAllvect = np.mean(allVectlin, axis=0)
+            meanAllvectrot = np.mean(allVectrot, axis=0)
+            
+            relAO_4090 = getAO_4090ms(allVectlin, linSCG._samplerate, show = False)
+            relAO_2dPeak = getAO_2pAfter40ms(allVectlin, linSCG._samplerate, show = False)
+            
+            ao_HFACC_zLin = khosrow_khavar2015(all_zlin, zlinSCG._samplerate, show = False)
+            ao_HFACC_yRot = khosrow_khavar2015(all_yrot, yrotSCG._samplerate, show = False)
+            
+            self.allecgJSON, self.allVectlin, self.allVectrot = mean_ecgJSON, allVectlin, allVectrot
+            self.ecgJSON, self.linSCG, self.rotSCG = ecgJSON, linSCG, rotSCG
+            
+            listToDisplay = [allVectlin, allVectrot]
+            corresponding = [self.linSCG, self.rotSCG]
+            
+        except:
+            print("This is a fail")
         
         def removeOutliers(mydata):
             # Réorganiser les données en une matrice 2D
@@ -653,14 +687,25 @@ class DisplMeanWindow(QMainWindow):
             
             return filtered_data
         
-        
-        onsBPLeg = getBpOnsets_tang(mean_bpLeg, bpLeg._samplerate, bpLeg._title, filt = True, show = False)
-        onsBPLeg = removeOutliers(onsBPLeg)
-        onsBPArm = getBpOnsets_tang(mean_bpArm, self.bpArm._samplerate, self.bpArm._title, filt = True, show = False)
-        onsBPArm = removeOutliers(onsBPArm)
-        if not self.bpAo == None :
-            onsBPAo = getBpOnsets_tang(mean_bpAo, self.bpAo._samplerate, self.bpAo._title, filt = True, show = False)
-            onsBPAo = removeOutliers(onsBPAo)
+        try :
+            onsBPLeg = getBpOnsets_tang(mean_bpLeg, bpLeg._samplerate, bpLeg._title, filt = True, show = False)
+            onsBPLeg = removeOutliers(onsBPLeg)
+            onsBPArm = getBpOnsets_tang(mean_bpArm, self.bpArm._samplerate, self.bpArm._title, filt = True, show = False)
+            onsBPArm = removeOutliers(onsBPArm)
+            if not self.bpAo == None :
+                onsBPAo = getBpOnsets_tang(mean_bpAo, self.bpAo._samplerate, self.bpAo._title, filt = True, show = False)
+                onsBPAo = removeOutliers(onsBPAo)
+            
+            self.allecgML, self.allbpLeg, self.allbpArm = mean_ecgML, mean_bpLeg, mean_bpArm
+            self.ecgML, self.bpLeg, self.bpArm = ecgML, bpLeg, self.bpArm
+            
+            self.addBP(self.bpLeg, mean_bpLeg, onsBPLeg[0])
+            self.addBP(self.bpArm, mean_bpArm, onsBPArm[0])
+            if not self.bpAo == None :
+                self.addBP(self.bpAo, mean_bpAo, onsBPAo[0])
+
+        except:
+            print("no matlab found")
         
         #%% Definition of colors for the graphs
         
@@ -673,183 +718,179 @@ class DisplMeanWindow(QMainWindow):
         rose = QtGui.QBrush(QtGui.QColor(255, 0, 255, 85)) #Q
         
         #%% Display of all the mean graphs (6)
-        
-        self.allecgML, self.allbpLeg, self.allbpArm, self.allecgJSON, self.allVectlin, self.allVectrot = mean_ecgML, mean_bpLeg, mean_bpArm, mean_ecgJSON, allVectlin, allVectrot
-        self.ecgML, self.bpLeg, self.bpArm, self.ecgJSON, self.linSCG, self.rotSCG = ecgML, bpLeg, self.bpArm, ecgJSON, linSCG, rotSCG
-     
-               
-        self.addBP(self.bpLeg, mean_bpLeg, onsBPLeg[0])
-        self.addBP(self.bpArm, mean_bpArm, onsBPArm[0])
-        if not self.bpAo == None :
-            self.addBP(self.bpAo, mean_bpAo, onsBPAo[0])
-        
-        #%%
-        listToDisplay = [allVectlin, allVectrot]
-        corresponding = [self.linSCG, self.rotSCG]
 
-        refPlotWidget = None
-        # i is the index of the current R peak
         
-        for i in range(len(listToDisplay)) : # passera 6 fois (1 pour chaque graphe moyenné)
-            print(corresponding[i]._title)
-            graphWidget = pg.PlotWidget()              
-            countTrace = 0
-            for trace in listToDisplay[i]: # Passera 71 fois (1 pour chaque morceau du graphe courant)
-                x = np.arange(0, len(trace)*corresponding[i]._step, corresponding[i]._step)
-                
-                while len(x)>len(trace):
-                    x=np.delete(x,-1)
-                
-                # Plot a single trace
-                graphWidget.addLegend()
-                courbe = graphWidget.plot(x, trace, pen="grey")
-                courbe.setOpacity(0.3)
-                
-                
+        try :
+            refPlotWidget = None
+            # i is the index of the current R peak
+            
+            for i in range(len(listToDisplay)) : # passera 6 fois (1 pour chaque graphe moyenné)
+                print(corresponding[i]._title)
+                graphWidget = pg.PlotWidget()              
+                countTrace = 0
+                for trace in listToDisplay[i]: # Passera 71 fois (1 pour chaque morceau du graphe courant)
+                    x = np.arange(0, len(trace)*corresponding[i]._step, corresponding[i]._step)
+                    
+                    while len(x)>len(trace):
+                        x=np.delete(x,-1)
+                    
+                    # Plot a single trace
+                    graphWidget.addLegend()
+                    courbe = graphWidget.plot(x, trace, pen="grey")
+                    courbe.setOpacity(0.3)
+                    
+                    
+                    if corresponding[i]._title == "lin_SCGvect[m/s^2]":
+                        point4090 = relAO_4090[countTrace]
+                        point_2dpeak = relAO_2dPeak[countTrace]
+                        points4090 = pg.ScatterPlotItem(x=[x[point4090]], y=[trace[point4090]], brush=rose, pen=None)
+                        graphWidget.addItem(points4090)
+                        points2dP = pg.ScatterPlotItem(x=[x[point_2dpeak]], y=[trace[point_2dpeak]], brush=turquoise, pen=None)
+                        graphWidget.addItem(points2dP)
+                    
+                    countTrace += 1
+                        
+                #%% Add the mean traces of the SCGs in red
                 if corresponding[i]._title == "lin_SCGvect[m/s^2]":
-                    point4090 = relAO_4090[countTrace]
-                    point_2dpeak = relAO_2dPeak[countTrace]
-                    points4090 = pg.ScatterPlotItem(x=[x[point4090]], y=[trace[point4090]], brush=rose, pen=None)
-                    graphWidget.addItem(points4090)
-                    points2dP = pg.ScatterPlotItem(x=[x[point_2dpeak]], y=[trace[point_2dpeak]], brush=turquoise, pen=None)
-                    graphWidget.addItem(points2dP)
-                
-                countTrace += 1
+                    posStart = x[0]
+                    posStop = x[-1]
+                    self.aolinCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
+                    graphWidget.addItem(self.aolinCursor)
+                    self.aolinCursor.sigPositionChanged.connect(self.manualAOlin)
                     
-            #%% Add the mean traces of the SCGs in red
-            if corresponding[i]._title == "lin_SCGvect[m/s^2]":
-                posStart = x[0]
-                posStop = x[-1]
-                self.aolinCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
-                graphWidget.addItem(self.aolinCursor)
-                self.aolinCursor.sigPositionChanged.connect(self.manualAOlin)
-                
-                x = np.arange(0, len(meanAllvect)*linSCG._step, linSCG._step)
-                if len(x)>len(meanAllvect):
-                    x = np.delete(x,-1)
-                elif len(meanAllvect)>len(x):
-                    meanAllvect = np.delete(meanAllvect,-1)
-                
-                courbe = graphWidget.plot(x, meanAllvect, pen='red')
-                points1 = pg.ScatterPlotItem(x=[x[int(np.round(np.mean(relAO_4090)))]], y=[meanAllvect[int(np.round(np.mean(relAO_4090)))]], brush = "magenta", pen=None)
-                graphWidget.addItem(points1)
-                points2 = pg.ScatterPlotItem(x=[x[int(np.round(np.mean(relAO_2dPeak)))]], y=[meanAllvect[int(np.round(np.mean(relAO_2dPeak)))]], brush = "turquoise", pen=None)
-                graphWidget.addItem(points2) 
-            
-  
-            elif corresponding[i]._title == "rot_SCGvect[deg/s]":
-                posStart = x[0]
-                posStop = x[-1]
-                self.aorotCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
-                graphWidget.addItem(self.aorotCursor)
-                self.aorotCursor.sigPositionChanged.connect(self.manualAOrot)
-                x = np.arange(0, len(meanAllvectrot)*rotSCG._step, rotSCG._step)
-                if len(x)>len(meanAllvect):
-                    x = np.delete(x,-1)
-                elif len(meanAllvect)>len(x):
-                    meanAllvect = np.delete(meanAllvect,-1)
+                    x = np.arange(0, len(meanAllvect)*linSCG._step, linSCG._step)
+                    if len(x)>len(meanAllvect):
+                        x = np.delete(x,-1)
+                    elif len(meanAllvect)>len(x):
+                        meanAllvect = np.delete(meanAllvect,-1)
                     
-                courbe = graphWidget.plot(x, meanAllvectrot, pen='red')
+                    courbe = graphWidget.plot(x, meanAllvect, pen='red')
+                    points1 = pg.ScatterPlotItem(x=[x[int(np.round(np.mean(relAO_4090)))]], y=[meanAllvect[int(np.round(np.mean(relAO_4090)))]], brush = "magenta", pen=None)
+                    graphWidget.addItem(points1)
+                    points2 = pg.ScatterPlotItem(x=[x[int(np.round(np.mean(relAO_2dPeak)))]], y=[meanAllvect[int(np.round(np.mean(relAO_2dPeak)))]], brush = "turquoise", pen=None)
+                    graphWidget.addItem(points2) 
                 
-            graphWidget.setTitle("Mean "+corresponding[i]._title)
-            graphWidget.setLabel('left', 'Magnitude')
-            graphWidget.setLabel('bottom', 'Time [s]')
-            graphWidget.setMinimumHeight(300)
-            #graphWidget.addLegend()
-            graphWidget.showGrid(x=True, y=True)
-            
-            # Make all the graphs share the same x axis
-            if i == 0:
-                refPlotWidget = graphWidget
-            else :
-                graphWidget.setXLink(refPlotWidget)
-            
-            self.layout.addWidget(graphWidget)
-        
-                
-            if corresponding[i]._title == "lin_SCGvect[m/s^2]":
-                legend = QLabel("<font color='magenta'>●</font> AO detected 40-90 ms ; <font color='turquoise'>●</font> AO detected as 2d peak")
-                legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.layout.addWidget(legend)
-                
-                self.ao_4090_label = QLabel("")
-                self.layout.addWidget(self.ao_4090_label)
-                
-                self.aO_2dP_label = QLabel("")
-                self.layout.addWidget(self.aO_2dP_label)
-                
-                self.manualAOlin_label = QLabel(f" Manual AO (linSCG) : {self.aolinCursor.pos().x()} s")
-                self.layout.addWidget(self.manualAOlin_label)
-                                
-                self.xLinCursor = self.displaySCGGraph(all_xlin, xlinSCG)
-                self.xLin_label = QLabel("")
-                self.layout.addWidget(self.xLin_label)
-                self.xLinCursor.sigPositionChanged.connect(self.manualAOxlin)
-                
-                self.yLinCursor = self.displaySCGGraph(all_ylin, ylinSCG)
-                self.yLin_label = QLabel("")
-                self.layout.addWidget(self.yLin_label)
-                self.yLinCursor.sigPositionChanged.connect(self.manualAOylin)
-                
-                self.zLinCursor = self.displaySCGGraph(all_zlin, zlinSCG, dots = ao_HFACC_zLin)
-                self.zLin_label = QLabel("")
-                self.layout.addWidget(self.zLin_label)
-                self.zLinCursor.sigPositionChanged.connect(self.manualAOzlin)
+      
+                elif corresponding[i]._title == "rot_SCGvect[deg/s]":
+                    posStart = x[0]
+                    posStop = x[-1]
+                    self.aorotCursor = pg.InfiniteLine(pos=posStart, bounds=[posStart, posStop], label='Manual AO', angle=90, movable=True, pen=pg.mkPen(width=3))
+                    graphWidget.addItem(self.aorotCursor)
+                    self.aorotCursor.sigPositionChanged.connect(self.manualAOrot)
+                    x = np.arange(0, len(meanAllvectrot)*rotSCG._step, rotSCG._step)
+                    if len(x)>len(meanAllvect):
+                        x = np.delete(x,-1)
+                    elif len(meanAllvect)>len(x):
+                        meanAllvect = np.delete(meanAllvect,-1)
+                        
+                    courbe = graphWidget.plot(x, meanAllvectrot, pen='red')
                     
-             
-            elif corresponding[i]._title == "rot_SCGvect[deg/s]":
-                 self.manualAOrot_label = QLabel(f"\tManual AO (rotSCG) : {self.aorotCursor.pos().x()} s")
-                 self.layout.addWidget(self.manualAOrot_label)
+                graphWidget.setTitle("Mean "+corresponding[i]._title)
+                graphWidget.setLabel('left', 'Magnitude')
+                graphWidget.setLabel('bottom', 'Time [s]')
+                graphWidget.setMinimumHeight(300)
+                #graphWidget.addLegend()
+                graphWidget.showGrid(x=True, y=True)
+                
+                # Make all the graphs share the same x axis
+                if i == 0:
+                    refPlotWidget = graphWidget
+                else :
+                    graphWidget.setXLink(refPlotWidget)
+                
+                self.layout.addWidget(graphWidget)
+            
+                    
+                if corresponding[i]._title == "lin_SCGvect[m/s^2]":
+                    legend = QLabel("<font color='magenta'>●</font> AO detected 40-90 ms ; <font color='turquoise'>●</font> AO detected as 2d peak")
+                    legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.layout.addWidget(legend)
+                    
+                    self.ao_4090_label = QLabel("")
+                    self.layout.addWidget(self.ao_4090_label)
+                    
+                    self.aO_2dP_label = QLabel("")
+                    self.layout.addWidget(self.aO_2dP_label)
+                    
+                    self.manualAOlin_label = QLabel(f" Manual AO (linSCG) : {self.aolinCursor.pos().x()} s")
+                    self.layout.addWidget(self.manualAOlin_label)
+                                    
+                    self.xLinCursor = self.displaySCGGraph(all_xlin, xlinSCG)
+                    self.xLin_label = QLabel("")
+                    self.layout.addWidget(self.xLin_label)
+                    self.xLinCursor.sigPositionChanged.connect(self.manualAOxlin)
+                    
+                    self.yLinCursor = self.displaySCGGraph(all_ylin, ylinSCG)
+                    self.yLin_label = QLabel("")
+                    self.layout.addWidget(self.yLin_label)
+                    self.yLinCursor.sigPositionChanged.connect(self.manualAOylin)
+                    
+                    self.zLinCursor = self.displaySCGGraph(all_zlin, zlinSCG, dots = ao_HFACC_zLin)
+                    self.zLin_label = QLabel("")
+                    self.layout.addWidget(self.zLin_label)
+                    self.zLinCursor.sigPositionChanged.connect(self.manualAOzlin)
+                        
                  
-                 self.xRotCursor = self.displaySCGGraph(all_xrot, xrotSCG)
-                 self.xRot_label = QLabel("")
-                 self.layout.addWidget(self.xRot_label)
-                 self.xRotCursor.sigPositionChanged.connect(self.manualAOxrot)
-                 
-                 self.yRotCursor = self.displaySCGGraph(all_yrot, yrotSCG, dots = ao_HFACC_yRot)
-                 self.yRot_label = QLabel("")
-                 self.layout.addWidget(self.yRot_label)
-                 self.yRotCursor.sigPositionChanged.connect(self.manualAOyrot)
-                 
-                 self.zRotCursor = self.displaySCGGraph(all_zrot, zrotSCG)
-                 self.zRot_label = QLabel("")
-                 self.layout.addWidget(self.zRot_label)
-                 self.zRotCursor.sigPositionChanged.connect(self.manualAOzrot)
+                elif corresponding[i]._title == "rot_SCGvect[deg/s]":
+                     self.manualAOrot_label = QLabel(f"\tManual AO (rotSCG) : {self.aorotCursor.pos().x()} s")
+                     self.layout.addWidget(self.manualAOrot_label)
+                     
+                     self.xRotCursor = self.displaySCGGraph(all_xrot, xrotSCG)
+                     self.xRot_label = QLabel("")
+                     self.layout.addWidget(self.xRot_label)
+                     self.xRotCursor.sigPositionChanged.connect(self.manualAOxrot)
+                     
+                     self.yRotCursor = self.displaySCGGraph(all_yrot, yrotSCG, dots = ao_HFACC_yRot)
+                     self.yRot_label = QLabel("")
+                     self.layout.addWidget(self.yRot_label)
+                     self.yRotCursor.sigPositionChanged.connect(self.manualAOyrot)
+                     
+                     self.zRotCursor = self.displaySCGGraph(all_zrot, zrotSCG)
+                     self.zRot_label = QLabel("")
+                     self.layout.addWidget(self.zRot_label)
+                     self.zRotCursor.sigPositionChanged.connect(self.manualAOzrot)
 
-            
+        except :
+            print("No SCG")
         
     #%% Display of the MetaData and the approximative PWV
         
-        self.meanR_Leg = np.mean(onsBPLeg[1])
-        self.stdR_Leg = np.std(onsBPLeg[1])
-        self.lenR_Leg = len(onsBPLeg[1])
-        self.bpLeg_label.setText(" Mean R-bpLeg onset delay : "+str(np.round(self.meanR_Leg,3))+" ± "+str(np.round(self.stdR_Leg,3))+" s (N = "+str(self.lenR_Leg)+")")
-        # Computation of the mean R-Leg and R-Arm
-        
-        self.meanR_Arm = np.mean(onsBPArm[1])
-        self.stdR_Arm = np.std(onsBPArm[1])
-        self.lenR_Arm = len(onsBPArm[1])
-        self.bpArm_label.setText(" Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" ± "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
-        
-        if not self.bpAo == None :
-            self.meanR_Ao = np.mean(onsBPAo[1])
-            self.stdR_Ao = np.std(onsBPAo[1])
-            self.lenR_Ao = len(onsBPAo[1])
-            self.bpAo_label.setText(" Mean R-bpAo onset delay : "+str(np.round(self.meanR_Ao,3))+" ± "+str(np.round(self.stdR_Ao,3))+" s (N = "+str(self.lenR_Ao)+")")
+        try :
+            self.meanR_Leg = np.mean(onsBPLeg[1])
+            self.stdR_Leg = np.std(onsBPLeg[1])
+            self.lenR_Leg = len(onsBPLeg[1])
+            self.bpLeg_label.setText(" Mean R-bpLeg onset delay : "+str(np.round(self.meanR_Leg,3))+" ± "+str(np.round(self.stdR_Leg,3))+" s (N = "+str(self.lenR_Leg)+")")
+            # Computation of the mean R-Leg and R-Arm
             
+            self.meanR_Arm = np.mean(onsBPArm[1])
+            self.stdR_Arm = np.std(onsBPArm[1])
+            self.lenR_Arm = len(onsBPArm[1])
+            self.bpArm_label.setText(" Mean R-bpArm onset delay : "+str(np.round(self.meanR_Arm,3))+" ± "+str(np.round(self.stdR_Arm,3))+" s (N = "+str(self.lenR_Arm)+")")
+            
+            if not self.bpAo == None :
+                self.meanR_Ao = np.mean(onsBPAo[1])
+                self.stdR_Ao = np.std(onsBPAo[1])
+                self.lenR_Ao = len(onsBPAo[1])
+                self.bpAo_label.setText(" Mean R-bpAo onset delay : "+str(np.round(self.meanR_Ao,3))+" ± "+str(np.round(self.stdR_Ao,3))+" s (N = "+str(self.lenR_Ao)+")")
+        except:
+            print("None of the above")
         
-        # Computation of the mean R-AO for each technique
-        self.meanR_AO_4090 = np.mean(relAO_4090)*linSCG._step
-        self.stdR_AO_4090 = np.std(relAO_4090*linSCG._step)
-        self.lenAO_4090 = len(relAO_4090)
-        text = " Delay R-AO (40-90 ms technique): "+str(np.round(self.meanR_AO_4090,3))+" ± "+str(np.round(self.stdR_AO_4090,3))+" s (N = "+str(self.lenAO_4090)+")"
-        self.ao_4090_label.setText(text)
+        try:
+            # Computation of the mean R-AO for each technique
+            self.meanR_AO_4090 = np.mean(relAO_4090)*linSCG._step
+            self.stdR_AO_4090 = np.std(relAO_4090*linSCG._step)
+            self.lenAO_4090 = len(relAO_4090)
+            text = " Delay R-AO (40-90 ms technique): "+str(np.round(self.meanR_AO_4090,3))+" ± "+str(np.round(self.stdR_AO_4090,3))+" s (N = "+str(self.lenAO_4090)+")"
+            self.ao_4090_label.setText(text)
+            
+            self.meanR_AO_2dP = np.round(np.mean(relAO_2dPeak))*linSCG._step
+            self.stdR_AO_2dP = np.std(relAO_2dPeak*linSCG._step) 
+            self.lenAO_2dP = len(relAO_2dPeak)
+            text = " Delay R-AO (2d peak technique): "+str(np.round(self.meanR_AO_2dP,3))+" ± "+str(np.round(self.stdR_AO_2dP,3))+" s (N = "+str(self.lenAO_2dP)+")"
+            self.aO_2dP_label.setText(text)
+        except:
+            print("None of the above")
         
-        self.meanR_AO_2dP = np.round(np.mean(relAO_2dPeak))*linSCG._step
-        self.stdR_AO_2dP = np.std(relAO_2dPeak*linSCG._step) 
-        self.lenAO_2dP = len(relAO_2dPeak)
-        text = " Delay R-AO (2d peak technique): "+str(np.round(self.meanR_AO_2dP,3))+" ± "+str(np.round(self.stdR_AO_2dP,3))+" s (N = "+str(self.lenAO_2dP)+")"
-        self.aO_2dP_label.setText(text)
         
         #%%
         
